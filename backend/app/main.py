@@ -16,13 +16,17 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Add your frontend URL
+    # Update this to include your Vercel frontend URL
+    allow_origins=[
+        "http://localhost:3000",
+        "https://your-frontend-url.vercel.app"  # Add your Vercel frontend URL
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Test endpoint to verify the backend is working
+# Your existing endpoints
 @app.get("/test")
 async def test_endpoint():
     return {"message": "Backend is working!"}
@@ -35,6 +39,7 @@ async def health_check():
 app.include_router(api_router)
 app.include_router(provider_router)
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# Remove the uvicorn.run part since Vercel handles this
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="0.0.0.0", port=8000)
