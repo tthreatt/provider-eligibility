@@ -19,7 +19,7 @@ app.add_middleware(
     # Update this to include your Vercel frontend URL
     allow_origins=[
         "http://localhost:3000",
-        "https://your-frontend-url.vercel.app"  # Add your Vercel frontend URL
+        "https://provider-eligibility.vercel.app/"  # Add your Vercel frontend URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
