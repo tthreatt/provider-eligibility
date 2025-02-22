@@ -122,7 +122,7 @@ export default function Home() {
       </SignedIn>
 
       <SignedOut>
-        <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="pt-16 flex justify-center bg-white">
           <Card className="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300">
             <div className="p-8">
               <div className="mb-6">
