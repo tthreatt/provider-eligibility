@@ -2,7 +2,7 @@
 import './globals.css'
 import { ThemeProvider, createTheme } from "@mui/material/styles"
 import CssBaseline from "@mui/material/CssBaseline"
-import { ClerkProvider, SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
+import { ClerkProvider, SignedIn, UserButton } from '@clerk/nextjs'
 import { Inter } from 'next/font/google'
 
 
@@ -75,9 +75,6 @@ export default function RootLayout({
       <html lang="en">
         <body className={inter.className}>
           <header style={{ padding: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-            <SignedOut>
-              <SignInButton />
-            </SignedOut>
             <SignedIn>
               <UserButton afterSignOutUrl="/"/>
             </SignedIn>
