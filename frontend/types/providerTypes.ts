@@ -1,11 +1,11 @@
 /** Requirements for a healthcare provider */
 export interface Requirement {
   /** Whether a state license is required */
-  state_license: boolean
+  stateLicense: boolean
   /** Whether controlled substance registration is required */
-  controlled_substance_registration: boolean
+  deaCds: boolean
   /** Whether board certification is required */
-  board_certification: boolean
+  boardCertification: boolean
 }
 
 export interface ProviderType {
