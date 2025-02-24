@@ -19,13 +19,20 @@ interface SearchResult {
     boardCertification: boolean
     providerType: string
   }
+  rawApiResponse: any
+}
+
+interface NPIValidationResponse {
+  'NPI Validation': any
+  Licenses: any
+  rawApiResponse: any
 }
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<"admin" | "search">("admin")
   const [loading, setLoading] = useState(false)
 
-  const handleSearch = async (npi: string): Promise<SearchResult> => {
+  const handleSearch = async (npi: string): Promise<NPIValidationResponse> => {
     setLoading(true)
     try {
       const response = await fetch('/api/fetch-provider-data', {
@@ -44,7 +51,11 @@ export default function Home() {
 
       const data = await response.json();
       console.log('API Response:', data);
-      return data;
+      return {
+        'NPI Validation': data['NPI Validation'],
+        Licenses: data.Licenses,
+        rawApiResponse: data.rawApiResponse
+      };
 
     } catch (error) {
       console.error('Search error:', error);
@@ -58,6 +69,8 @@ export default function Home() {
     const { signIn } = useSignIn();
 
     const handleGoogleSignIn = async () => {
+      if (!signIn) return;
+      
       try {
         await signIn.authenticateWithRedirect({
           strategy: "oauth_google",

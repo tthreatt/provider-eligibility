@@ -26,45 +26,31 @@ import CheckIcon from "@mui/icons-material/Check"
 import CloseIcon from "@mui/icons-material/Close"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import SearchIcon from "@mui/icons-material/Search"
+import { License, NPIValidationResponse } from '../types/providerTypes'
 
-// Update interface to match the new API response
+// Update the SearchResult interface to match the actual API response structure
 interface SearchResult {
-  isEligible: boolean
+  isEligible: boolean;
   requirements: {
-    stateLicense: boolean
-    deaCds: boolean
-    boardCertification: boolean
-    providerType: string
-  }
+    stateLicense: boolean;
+    deaCds: boolean;
+    boardCertification: boolean;
+    providerType: string;
+  };
   rawApiResponse: {
-    'NPI Validation': {
-      providerName: string
-      npi: string
-      updateDate: string
-      licenses: Array<{
-        code: string
-        number: string
-        state: string
-      }>
-    }
-    Licenses: Array<{
-      category: string
-      status: string
-      type?: string
-      issuer?: string
-      number: string
-      state: string
-      expirationDate?: string
-      firstName?: string
-      lastName?: string
-      middleName?: string
-      source?: string
-    }>
-  }
+    rawApiResponse: {  // Note the double nesting
+      'NPI Validation': {
+        providerName: string;
+        npi: string;
+        updateDate: string;
+      };
+      Licenses: License[];
+    };
+  };
 }
 
 interface NPISearchProps {
-  onSearch: (npi: string) => Promise<SearchResult>
+  onSearch: (npi: string) => Promise<NPIValidationResponse>
   loading: boolean
 }
 
@@ -99,7 +85,7 @@ export function NPISearch({ onSearch, loading }: NPISearchProps) {
       }
 
       const result = await response.json()
-      console.log('Search result received:', result)
+      console.log('Raw API Response:', result);
       setSearchResult(result)
     } catch (err) {
       console.error('Search error:', err)
@@ -109,12 +95,52 @@ export function NPISearch({ onSearch, loading }: NPISearchProps) {
 
   useEffect(() => {
     if (searchResult) {
-      console.log('Full search result:', searchResult);
-      console.log('Raw API Response:', searchResult.rawApiResponse?.rawApiResponse);
-      console.log('NPI Validation:', searchResult.rawApiResponse?.rawApiResponse?.['NPI Validation']);
-      console.log('Requirements:', searchResult.requirements);
+      // Debug the full data structure
+      console.log('Rendering searchResult:', {
+        isEligible: searchResult.isEligible,
+        providerName: searchResult.rawApiResponse?.rawApiResponse?.['NPI Validation']?.providerName,
+        npi: searchResult.rawApiResponse?.rawApiResponse?.['NPI Validation']?.npi,
+        licenses: searchResult.rawApiResponse?.rawApiResponse?.Licenses,
+        requirements: searchResult.requirements
+      });
+
+      // Debug the filtered licenses
+      console.log('Active State Licenses:', searchResult.rawApiResponse?.rawApiResponse?.Licenses?.filter(l => 
+        l.category?.toLowerCase() === 'state_license' && l.status?.toLowerCase() === 'active'
+      ));
+      
+      console.log('Active DEA/CDS:', searchResult.rawApiResponse?.rawApiResponse?.Licenses?.filter(l => 
+        l.category?.toLowerCase() === 'controlled_substance_registration' && l.status?.toLowerCase() === 'active'
+      ));
+      
+      console.log('Active Board Certs:', searchResult.rawApiResponse?.rawApiResponse?.Licenses?.filter(l => 
+        l.category?.toLowerCase() === 'board_certification' && l.status?.toLowerCase() === 'active'
+      ));
     }
   }, [searchResult]);
+
+  const formatExpirationDate = (date: string | undefined) => {
+    if (!date) return 'No expiration date';
+    try {
+      return new Date(date).toLocaleDateString();
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
+  const isValidDate = (date: string | undefined) => {
+    if (!date) return false;
+    try {
+      new Date(date);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const renderLicenses = (license: License) => {
+    // ... existing code ...
+  }
 
   return (
     <Box sx={{ p: 4, bgcolor: 'background.paper', borderRadius: 1 }}>
@@ -177,7 +203,7 @@ export function NPISearch({ onSearch, loading }: NPISearchProps) {
           </Typography>
           
           <Typography variant="h6" sx={{ color: 'text.primary', mb: 2, fontWeight: 'medium' }}>
-            Provider Type: {searchResult?.requirements?.providerType || 'N/A'}
+            Provider Type: {searchResult.requirements?.providerType || 'N/A'}
           </Typography>
 
           <List sx={{ width: '100%' }}>
@@ -191,18 +217,15 @@ export function NPISearch({ onSearch, loading }: NPISearchProps) {
               </ListItemIcon>
               <ListItemText 
                 primary="State License"
-                secondary={searchResult.rawApiResponse?.rawApiResponse?.Licenses
+                secondary={searchResult?.rawApiResponse?.rawApiResponse?.Licenses
                   ?.filter(license => 
                     license.category?.toLowerCase() === 'state_license' && 
                     license.status?.toLowerCase() === 'active'
                   )
                   .map(license => 
-                    `${license.issuer}: ${license.number} (Expires: ${new Date(license.expirationDate).toLocaleDateString()})`
+                    `${license.issuer}: ${license.number} (Expires: ${formatExpirationDate(license.expirationDate)})`
                   )
                   .join(', ') || 'No active licenses found'}
-                primaryTypographyProps={{
-                  sx: { fontSize: '1.1rem' }
-                }}
               />
             </ListItem>
             
@@ -216,18 +239,15 @@ export function NPISearch({ onSearch, loading }: NPISearchProps) {
               </ListItemIcon>
               <ListItemText 
                 primary="DEA/CDS"
-                secondary={searchResult.rawApiResponse?.rawApiResponse?.Licenses
+                secondary={searchResult?.rawApiResponse?.rawApiResponse?.Licenses
                   ?.filter(license => 
                     license.category?.toLowerCase() === 'controlled_substance_registration' && 
                     license.status?.toLowerCase() === 'active'
                   )
                   .map(license => 
-                    `${license.number} (Expires: ${new Date(license.expirationDate).toLocaleDateString()})`
+                    `${license.number} (Expires: ${formatExpirationDate(license.expirationDate)})`
                   )
                   .join(', ') || 'No active licenses found'}
-                primaryTypographyProps={{
-                  sx: { fontSize: '1.1rem' }
-                }}
               />
             </ListItem>
             
@@ -241,18 +261,15 @@ export function NPISearch({ onSearch, loading }: NPISearchProps) {
               </ListItemIcon>
               <ListItemText 
                 primary="Board Certification"
-                secondary={searchResult.rawApiResponse?.rawApiResponse?.Licenses
+                secondary={searchResult?.rawApiResponse?.rawApiResponse?.Licenses
                   ?.filter(license => 
                     license.category?.toLowerCase() === 'board_certification' && 
                     license.status?.toLowerCase() === 'active'
                   )
                   .map(license => 
-                    `${license.type} (Expires: ${new Date(license.expirationDate).toLocaleDateString()})`
+                    `${license.type} (Expires: ${formatExpirationDate(license.expirationDate)})`
                   )
                   .join(', ') || 'No active certifications found'}
-                primaryTypographyProps={{
-                  sx: { fontSize: '1.1rem' }
-                }}
               />
             </ListItem>
           </List>

@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server'
 import { providerTypes } from '@/config/providerRules';
+import { License } from '@/types/providerTypes';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
 const API_KEY = process.env.API_KEY;
@@ -53,17 +54,23 @@ export async function POST(request: Request) {
   }
 }
 
-// Helper functions to process Provider Trust API response
+// Add helper function for date checking
+const isValidDate = (date: string | undefined): boolean => {
+  if (!date) return false;
+  const expirationDate = new Date(date);
+  return !isNaN(expirationDate.getTime()) && expirationDate > new Date();
+};
+
+// Update the license checks
 function checkStateLicense(data: any): boolean {
-  // Access the correct level of the response
   const licenses = data?.rawApiResponse?.Licenses || [];
   console.log('All licenses:', licenses);
-  console.log('Checking state licenses:', licenses.filter(l => l.category?.toLowerCase() === 'state_license'));
+  console.log('Checking state licenses:', licenses.filter((l: License) => l.category?.toLowerCase() === 'state_license'));
   
-  const hasActiveLicense = licenses.some((license: any) => {
+  const hasActiveLicense = licenses.some((license: License) => {
     const isStateCategory = license.category?.toLowerCase() === 'state_license';
     const isActive = license.status?.toLowerCase() === 'active';
-    const isNotExpired = new Date(license.expirationDate) > new Date();
+    const isNotExpired = isValidDate(license.expirationDate);
     
     console.log('License check:', {
       license,
@@ -79,12 +86,12 @@ function checkStateLicense(data: any): boolean {
 
   console.log('State License Check:', { 
     hasActiveLicense, 
-    activeLicenses: licenses.filter(l => {
+    activeLicenses: licenses.filter((l: License) => {
       const isStateCategory = l.category?.toLowerCase() === 'state_license';
       const isActive = l.status?.toLowerCase() === 'active';
-      const isNotExpired = new Date(l.expirationDate) > new Date();
+      const isNotExpired = isValidDate(l.expirationDate);
       return isStateCategory && isActive && isNotExpired;
-    }).map(l => ({
+    }).map((l: License) => ({
       category: l.category,
       issuer: l.issuer,
       type: l.type,
@@ -99,22 +106,22 @@ function checkStateLicense(data: any): boolean {
 function checkDeaCds(data: any): boolean {
   const licenses = data?.rawApiResponse?.Licenses || [];
   
-  const hasActiveDea = licenses.some((license: any) => {
+  const hasActiveDea = licenses.some((license: License) => {
     const isDeaCategory = license.category?.toLowerCase() === 'controlled_substance_registration';
     const isActive = license.status?.toLowerCase() === 'active';
-    const isNotExpired = new Date(license.expirationDate) > new Date();
+    const isNotExpired = isValidDate(license.expirationDate);
     
     return isDeaCategory && isActive && isNotExpired;
   });
 
   console.log('DEA Check:', { 
     hasActiveDea, 
-    deaLicenses: licenses.filter(l => {
+    deaLicenses: licenses.filter((l: License) => {
       const isDeaCategory = l.category?.toLowerCase() === 'controlled_substance_registration';
       const isActive = l.status?.toLowerCase() === 'active';
-      const isNotExpired = new Date(l.expirationDate) > new Date();
+      const isNotExpired = isValidDate(l.expirationDate);
       return isDeaCategory && isActive && isNotExpired;
-    }).map(l => ({
+    }).map((l: License) => ({
       category: l.category,
       issuer: l.issuer,
       type: l.type,
@@ -129,22 +136,22 @@ function checkDeaCds(data: any): boolean {
 function checkBoardCertification(data: any): boolean {
   const licenses = data?.rawApiResponse?.Licenses || [];
   
-  const hasActiveCert = licenses.some((license: any) => {
+  const hasActiveCert = licenses.some((license: License) => {
     const isBoardCategory = license.category?.toLowerCase() === 'board_certification';
     const isActive = license.status?.toLowerCase() === 'active';
-    const isNotExpired = new Date(license.expirationDate) > new Date();
+    const isNotExpired = isValidDate(license.expirationDate);
     
     return isBoardCategory && isActive && isNotExpired;
   });
 
   console.log('Board Cert Check:', { 
     hasActiveCert, 
-    activeCerts: licenses.filter(l => {
+    activeCerts: licenses.filter((l: License) => {
       const isBoardCategory = l.category?.toLowerCase() === 'board_certification';
       const isActive = l.status?.toLowerCase() === 'active';
-      const isNotExpired = new Date(l.expirationDate) > new Date();
+      const isNotExpired = isValidDate(l.expirationDate);
       return isBoardCategory && isActive && isNotExpired;
-    }).map(l => ({
+    }).map((l: License) => ({
       category: l.category,
       issuer: l.issuer,
       type: l.type,
@@ -180,13 +187,21 @@ function processApiResponse(data: any) {
   const providerType = extractProviderType(data);
   const requirements = providerTypes.find(type => type.name === providerType)?.requirements;
   
+  console.log('Processing eligibility:', {
+    hasStateLicense,
+    hasDeaCds,
+    hasBoardCert,
+    providerType,
+    requirements
+  });
+
   if (!requirements) {
     return {
       isEligible: false,
       requirements: {
-        stateLicense: false,
-        deaCds: false,
-        boardCertification: false,
+        stateLicense: hasStateLicense,
+        deaCds: hasDeaCds,
+        boardCertification: hasBoardCert,
         providerType
       },
       rawApiResponse: data
@@ -197,14 +212,6 @@ function processApiResponse(data: any) {
     (!requirements.stateLicense || hasStateLicense) &&
     (!requirements.deaCds || hasDeaCds) &&
     (!requirements.boardCertification || hasBoardCert);
-
-  console.log('Final eligibility check:', {
-    requirements,
-    hasStateLicense,
-    hasDeaCds,
-    hasBoardCert,
-    isEligible
-  });
 
   return {
     isEligible,

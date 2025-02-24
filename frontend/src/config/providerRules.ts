@@ -1,5 +1,5 @@
-import type { ProviderType } from '@/types/providerTypes';
-
+import type { ProviderType } from '../types/providerTypes';
+    
 export const providerTypes: ProviderType[] = [
   {
     id: "1",
@@ -34,7 +34,7 @@ export const providerTypes: ProviderType[] = [
     requirements: {
       stateLicense: true,
       deaCds: true,
-      boardCertification: true,
+      boardCertification: false,
     },
   },
   {
