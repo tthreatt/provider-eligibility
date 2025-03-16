@@ -7,6 +7,28 @@ import DeleteIcon from "@mui/icons-material/Delete"
 import type { ProviderType } from "@/types/providerTypes"
 import { EditRuleDialog } from "./EditRuleDialog"
 
+// Add these interfaces to match the backend structure
+interface ValidationRule {
+  must_be_active?: boolean;
+  must_be_unrestricted?: boolean;
+  license_type?: string;
+}
+
+interface ApiRequirement {
+  requirement_type: string;
+  name: string;
+  description: string;
+  is_required: boolean;
+  validation_rules: ValidationRule;
+}
+
+interface ApiProviderType {
+  id: number;
+  code: string;
+  name: string;
+  requirements: ApiRequirement[];
+}
+
 export function RuleList() {
   const [providerTypes, setProviderTypes] = useState<ProviderType[]>([])
   const [editingProviderType, setEditingProviderType] = useState<ProviderType | null>(null)
@@ -18,34 +40,23 @@ export function RuleList() {
       if (!response.ok) {
         throw new Error('Failed to fetch provider types');
       }
-      const data = await response.json();
+      const data: ApiProviderType[] = await response.json();
       
-      // Updated conversion logic to handle the new API response format
-      const convertedData = data.map((providerType: any) => {
-        // First, find all requirements with their validation rules
-        const requirementsMap = providerType.requirements.reduce((acc: any, req: any) => {
-          acc[req.requirement_type] = {
-            is_required: req.is_required,
-            validation_rules: req.validation_rules || {}
-          };
-          return acc;
-        }, {});
-
-        return {
-          id: providerType.id.toString(),
-          name: providerType.name,
-          requirements: {
-            stateLicense: requirementsMap.license?.is_required || false,
-            deaCds: requirementsMap.registration?.is_required || false,
-            boardCertification: requirementsMap.certification?.is_required || false,
-            degree: requirementsMap.degree?.is_required || false,
-            residency: requirementsMap.residency?.is_required || false,
-            malpracticeInsurance: requirementsMap.insurance?.is_required || false,
-            backgroundCheck: requirementsMap.background_check?.is_required || false,
-            workHistory: requirementsMap.work_history?.is_required || false,
-          }
-        };
-      });
+      // Convert API data to match frontend structure
+      const convertedData: ProviderType[] = data.map(pt => ({
+        id: pt.id.toString(),
+        name: pt.name,
+        requirements: {
+          stateLicense: pt.requirements.some(r => r.requirement_type === 'license' && r.is_required),
+          deaCds: pt.requirements.some(r => r.requirement_type === 'registration' && r.is_required),
+          boardCertification: pt.requirements.some(r => r.requirement_type === 'certification' && r.is_required),
+          degree: pt.requirements.some(r => r.requirement_type === 'degree' && r.is_required),
+          residency: pt.requirements.some(r => r.requirement_type === 'residency' && r.is_required),
+          malpracticeInsurance: pt.requirements.some(r => r.requirement_type === 'insurance' && r.is_required),
+          backgroundCheck: pt.requirements.some(r => r.requirement_type === 'background_check' && r.is_required),
+          workHistory: pt.requirements.some(r => r.requirement_type === 'work_history' && r.is_required),
+        }
+      }));
 
       setProviderTypes(convertedData);
       console.log('API Response:', data); // Debug log
@@ -86,7 +97,7 @@ export function RuleList() {
 
   const saveEditedProviderType = async (updatedProviderType: ProviderType) => {
     try {
-      // Updated request body to match the API's expected format
+      // Convert frontend structure back to API structure
       const requestBody = {
         code: updatedProviderType.name.toLowerCase().replace(/\s+/g, '_'),
         name: updatedProviderType.name,
@@ -98,8 +109,7 @@ export function RuleList() {
             is_required: updatedProviderType.requirements.stateLicense,
             validation_rules: {
               must_be_active: true,
-              must_be_unrestricted: true,
-              license_type: "state_license"
+              must_be_unrestricted: true
             }
           },
           {
