@@ -1,12 +1,31 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.routes.api import api_router
+from app.api.api import api_router
 from app.routes.provider import router as provider_router
-from app.core.database import Base, engine
+from app.db.base_class import Base  # Import Base from base_class instead
+from app.core.database import engine
+from app.db.init_db import seed_provider_types
+from app.db.session import SessionLocal
+from app.models.eligibility_rules import (
+    ProviderType,
+    ValidationRule,
+    BaseRequirement,
+    ProviderRequirement
+)
+from app.models.provider import Provider
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Create tables before FastAPI app initialization
+def init_db():
+    Base.metadata.drop_all(bind=engine)  # Clear existing tables
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        seed_provider_types(db)
+    finally:
+        db.close()
+
+init_db()  # Initialize database and tables
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -26,6 +45,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def init_data():
+    db = SessionLocal()
+    try:
+        # Check if data already exists
+        provider_type_count = db.query(ProviderType).count()
+        if provider_type_count == 0:
+            seed_provider_types(db)
+    finally:
+        db.close()
+
 # Your existing endpoints
 @app.get("/test")
 async def test_endpoint():
@@ -36,7 +66,7 @@ async def health_check():
     return {"status": "healthy"}
 
 # Include API routes
-app.include_router(api_router)
+app.include_router(api_router, prefix="/api")
 app.include_router(provider_router)
 
 # Remove the uvicorn.run part since Vercel handles this

@@ -11,5 +11,15 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/mongoose": "^5.11.96",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "mongoose": "^8.12.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0"
+  }
 }

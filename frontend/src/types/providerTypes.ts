@@ -1,11 +1,18 @@
+export interface Requirements {
+  stateLicense: boolean;
+  deaCds: boolean;
+  boardCertification: boolean;
+  degree: boolean;
+  residency: boolean;
+  malpracticeInsurance: boolean;
+  backgroundCheck: boolean;
+  workHistory: boolean;
+}
+
 export interface ProviderType {
   id: string;
   name: string;
-  requirements: {
-    stateLicense: boolean;
-    deaCds: boolean;
-    boardCertification: boolean;
-  };
+  requirements: Requirements;
 }
 
 export interface License {

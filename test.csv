@@ -1,0 +1,360 @@
+ name                          description                                                   is_required  validation_rules                                              created_at                  updated_at                
+---  ----------------  -----------------------  ----------------------------  ------------------------------------------------------------  -----------  ------------------------------------------------------------  --------------------------  --------------------------
+1    1                 degree                   Medical Degree                Medical degree (MD or DO) from an accredited institution      1            {"must_be_active": true, "must_be_accredited": true, "degree  2025-03-16 15:36:05.476924  2025-03-16 15:36:05.476930
+                                                                                                                                                         _types": ["MD", "DO"]}                                                                                              
+
+2    1                 license                  State Medical License         Current, unrestricted state medical license                   1            {"must_be_active": true, "must_be_unrestricted": true, "lice  2025-03-16 15:36:05.476931  2025-03-16 15:36:05.476932
+                                                                                                                                                         nse_type": "state_license"}                                                                                         
+
+3    1                 residency                Residency Program             Completion of residency program                               1            {"must_be_completed": true, "program_type": "residency"}      2025-03-16 15:36:05.476932  2025-03-16 15:36:05.476933
+
+4    1                 certification            Board Certification           Board certification (for specialists)                         1            {"must_be_active": true, "certification_type": "board_certif  2025-03-16 15:36:05.476933  2025-03-16 15:36:05.476933
+                                                                                                                                                         ication"}                                                                                                           
+
+5    1                 registration             DEA Registration              DEA registration (if applicable)                              1            {"must_be_active": true, "registration_type": "controlled_su  2025-03-16 15:36:05.476934  2025-03-16 15:36:05.476934
+                                                                                                                                                         bstance_registration"}                                                                                              
+
+6    1                 insurance                Malpractice Insurance         Current malpractice insurance coverage                        1            {"must_be_active": true, "insurance_type": "malpractice"}     2025-03-16 15:36:05.476934  2025-03-16 15:36:05.476935
+
+7    1                 identifier               National Provider Identifier  Valid NPI number                                              1            {"must_be_valid": true, "identifier_type": "npi"}             2025-03-16 15:36:05.476935  2025-03-16 15:36:05.476935
+
+8    1                 background_check         Background Check              Background check and verification                             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.476936  2025-03-16 15:36:05.476936
+
+9    1                 work_history             Work History                  Verification of work history                                  1            {"must_be_verified": true, "verification_period_years": 5}    2025-03-16 15:36:05.476937  2025-03-16 15:36:05.476937
+
+10   1                 immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.476937  2025-03-16 15:36:05.476937
+
+11   1                 certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.476938  2025-03-16 15:36:05.476938
+
+12   1                 continuing_education     Continuing Education          Required continuing education credits                         1            {"must_be_current": true, "education_type": "continuing"}     2025-03-16 15:36:05.476939  2025-03-16 15:36:05.476939
+
+13   1                 professional_references  Professional References       Professional references                                       1            {"must_be_verified": true, "minimum_references": 3}           2025-03-16 15:36:05.476939  2025-03-16 15:36:05.476940
+
+14   2                 degree                   Advanced Degree               Appropriate degree (PhD, PsyD, MSW) from accredited institut  1            {"must_be_active": true, "must_be_accredited": true, "degree  2025-03-16 15:36:05.478326  2025-03-16 15:36:05.478326
+                                                                              ion                                                                        _types": ["PhD", "PsyD", "MSW"]}                                                                                    
+
+15   2                 license                  State License                 Current, unrestricted state license                           1            {"must_be_active": true, "must_be_unrestricted": true, "lice  2025-03-16 15:36:05.478327  2025-03-16 15:36:05.478327
+                                                                                                                                                         nse_type": "state_license"}                                                                                         
+
+16   2                 certification            Board Certification           Board certification (if applicable)                           1            {"must_be_active": true, "certification_type": "board_certif  2025-03-16 15:36:05.478328  2025-03-16 15:36:05.478328
+                                                                                                                                                         ication"}                                                                                                           
+
+17   2                 insurance                Malpractice Insurance         Malpractice insurance                                         1            {"must_be_active": true, "insurance_type": "malpractice"}     2025-03-16 15:36:05.478329  2025-03-16 15:36:05.478329
+
+18   2                 identifier               National Provider Identifier  National Provider Identifier (NPI)                            1            {"must_be_valid": true, "identifier_type": "npi"}             2025-03-16 15:36:05.478329  2025-03-16 15:36:05.478330
+
+19   2                 background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.478330  2025-03-16 15:36:05.478330
+
+20   2                 immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.478331  2025-03-16 15:36:05.478331
+
+21   2                 certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.478331  2025-03-16 15:36:05.478332
+
+22   2                 continuing_education     Continuing Education          Required continuing education credits                         1            {"must_be_current": true, "education_type": "continuing"}     2025-03-16 15:36:05.478332  2025-03-16 15:36:05.478332
+
+23   2                 professional_references  Professional References       Professional references                                       1            {"must_be_verified": true, "minimum_references": 3}           2025-03-16 15:36:05.478333  2025-03-16 15:36:05.478333
+
+24   3                 degree                   DC Degree                     Doctor of Chiropractic (DC) degree from an accredited instit  1            {"must_be_active": true, "must_be_accredited": true, "degree  2025-03-16 15:36:05.479474  2025-03-16 15:36:05.479475
+                                                                              ution                                                                      _types": ["DC"]}                                                                                                    
+
+25   3                 license                  State License                 Current, unrestricted state chiropractic license              1            {"must_be_active": true, "must_be_unrestricted": true, "lice  2025-03-16 15:36:05.479476  2025-03-16 15:36:05.479476
+                                                                                                                                                         nse_type": "chiropractic"}                                                                                          
+
+26   3                 certification            NBCE Certification            National Board of Chiropractic Examiners certification        1            {"must_be_active": true, "certification_type": "nbce"}        2025-03-16 15:36:05.479477  2025-03-16 15:36:05.479477
+
+27   3                 insurance                Malpractice Insurance         Malpractice insurance                                         1            {"must_be_active": true, "insurance_type": "malpractice"}     2025-03-16 15:36:05.479477  2025-03-16 15:36:05.479478
+
+28   3                 identifier               NPI                           National Provider Identifier (NPI)                            1            {"must_be_valid": true, "identifier_type": "npi"}             2025-03-16 15:36:05.479478  2025-03-16 15:36:05.479478
+
+29   3                 background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.479479  2025-03-16 15:36:05.479479
+
+30   3                 immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.479480  2025-03-16 15:36:05.479480
+
+31   3                 certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.479480  2025-03-16 15:36:05.479481
+
+32   3                 continuing_education     Continuing Education          Required continuing education credits                         1            {"must_be_current": true, "education_type": "continuing"}     2025-03-16 15:36:05.479481  2025-03-16 15:36:05.479481
+
+33   3                 professional_references  Professional References       Professional references                                       1            {"must_be_verified": true, "minimum_references": 3}           2025-03-16 15:36:05.479482  2025-03-16 15:36:05.479482
+
+34   4                 degree                   Dental Degree                 Doctor of Dental Surgery (DDS) or Doctor of Dental Medicine   1            {"must_be_active": true, "must_be_accredited": true, "degree  2025-03-16 15:36:05.480572  2025-03-16 15:36:05.480573
+                                                                              (DMD) degree                                                               _types": ["DDS", "DMD"]}                                                                                            
+
+35   4                 license                  State License                 Current, unrestricted state dental license                    1            {"must_be_active": true, "must_be_unrestricted": true, "lice  2025-03-16 15:36:05.480574  2025-03-16 15:36:05.480574
+                                                                                                                                                         nse_type": "dental"}                                                                                                
+
+36   4                 registration             DEA Registration              DEA registration (if applicable)                              0            {"must_be_active": true, "registration_type": "dea"}          2025-03-16 15:36:05.480574  2025-03-16 15:36:05.480575
+
+37   4                 certification            Board Certification           Board certification (for specialists)                         0            {"must_be_active": true, "certification_type": "board_certif  2025-03-16 15:36:05.480575  2025-03-16 15:36:05.480575
+                                                                                                                                                         ication"}                                                                                                           
+
+38   4                 insurance                Malpractice Insurance         Malpractice insurance                                         1            {"must_be_active": true, "insurance_type": "malpractice"}     2025-03-16 15:36:05.480576  2025-03-16 15:36:05.480576
+
+39   4                 identifier               NPI                           National Provider Identifier (NPI)                            1            {"must_be_valid": true, "identifier_type": "npi"}             2025-03-16 15:36:05.480576  2025-03-16 15:36:05.480577
+
+40   4                 background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.480577  2025-03-16 15:36:05.480577
+
+41   4                 immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.480578  2025-03-16 15:36:05.480578
+
+42   4                 certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.480578  2025-03-16 15:36:05.480579
+
+43   4                 continuing_education     Continuing Education          Required continuing education credits                         1            {"must_be_current": true, "education_type": "continuing"}     2025-03-16 15:36:05.480579  2025-03-16 15:36:05.480579
+
+44   4                 professional_references  Professional References       Professional references                                       1            {"must_be_verified": true, "minimum_references": 3}           2025-03-16 15:36:05.480580  2025-03-16 15:36:05.480580
+
+45   5                 degree                   Nutrition Degree              Bachelor's or Master's in Nutrition                           1            {"must_be_active": true, "must_be_accredited": true, "degree  2025-03-16 15:36:05.481699  2025-03-16 15:36:05.481699
+                                                                                                                                                         _types": ["BS-Nutrition", "MS-Nutrition"]}                                                                          
+
+46   5                 certification            RDN Credential                Registered Dietitian Nutritionist (RDN) credential            1            {"must_be_active": true, "certification_type": "rdn"}         2025-03-16 15:36:05.481700  2025-03-16 15:36:05.481700
+
+47   5                 license                  State License                 State licensure (if required)                                 0            {"must_be_active": true, "license_type": "nutrition"}         2025-03-16 15:36:05.481701  2025-03-16 15:36:05.481701
+
+48   5                 certification            Specialty Certification       Specialty certifications (if applicable)                      0            {"must_be_active": true, "certification_type": "specialty"}   2025-03-16 15:36:05.481702  2025-03-16 15:36:05.481702
+
+49   5                 insurance                Malpractice Insurance         Malpractice insurance                                         1            {"must_be_active": true, "insurance_type": "malpractice"}     2025-03-16 15:36:05.481702  2025-03-16 15:36:05.481703
+
+50   5                 identifier               NPI                           National Provider Identifier (NPI)                            1            {"must_be_valid": true, "identifier_type": "npi"}             2025-03-16 15:36:05.481703  2025-03-16 15:36:05.481703
+
+51   5                 background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.481704  2025-03-16 15:36:05.481704
+
+52   5                 immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.481704  2025-03-16 15:36:05.481705
+
+53   5                 certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.481705  2025-03-16 15:36:05.481705
+
+54   5                 continuing_education     Continuing Education          Required continuing education credits                         1            {"must_be_current": true, "education_type": "continuing"}     2025-03-16 15:36:05.481706  2025-03-16 15:36:05.481706
+
+55   5                 professional_references  Professional References       Professional references                                       1            {"must_be_verified": true, "minimum_references": 3}           2025-03-16 15:36:05.481706  2025-03-16 15:36:05.481707
+
+56   6                 certification            EMS Certification             Appropriate level of EMS certification (EMT, Paramedic)       1            {"must_be_active": true, "certification_type": "ems"}         2025-03-16 15:36:05.482741  2025-03-16 15:36:05.482742
+
+57   6                 license                  State License                 Current state EMS license                                     1            {"must_be_active": true, "license_type": "ems"}               2025-03-16 15:36:05.482743  2025-03-16 15:36:05.482743
+
+58   6                 training                 Required Training             Completion of required training programs                      1            {"must_be_completed": true, "training_type": "ems"}           2025-03-16 15:36:05.482743  2025-03-16 15:36:05.482744
+
+59   6                 certification            Specialty Certification       Specialty certifications (if applicable)                      0            {"must_be_active": true, "certification_type": "specialty"}   2025-03-16 15:36:05.482744  2025-03-16 15:36:05.482744
+
+60   6                 background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.482745  2025-03-16 15:36:05.482745
+
+61   6                 immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.482745  2025-03-16 15:36:05.482746
+
+62   6                 certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.482746  2025-03-16 15:36:05.482746
+
+63   6                 continuing_education     Continuing Education          Required continuing education credits                         1            {"must_be_current": true, "education_type": "continuing"}     2025-03-16 15:36:05.482747  2025-03-16 15:36:05.482747
+
+64   6                 professional_references  Professional References       Professional references                                       1            {"must_be_verified": true, "minimum_references": 3}           2025-03-16 15:36:05.482747  2025-03-16 15:36:05.482748
+
+65   7                 degree                   Professional Degree           Doctor of Optometry (OD) or Doctor of Medicine (MD) degree    1            {"must_be_active": true, "must_be_accredited": true, "degree  2025-03-16 15:36:05.483799  2025-03-16 15:36:05.483800
+                                                                                                                                                         _types": ["OD", "MD"]}                                                                                              
+
+66   7                 license                  State License                 Current, unrestricted state license                           1            {"must_be_active": true, "must_be_unrestricted": true, "lice  2025-03-16 15:36:05.483800  2025-03-16 15:36:05.483801
+                                                                                                                                                         nse_type": "vision"}                                                                                                
+
+67   7                 certification            Board Certification           Board certification (for ophthalmologists)                    0            {"must_be_active": true, "certification_type": "board_certif  2025-03-16 15:36:05.483801  2025-03-16 15:36:05.483801
+                                                                                                                                                         ication"}                                                                                                           
+
+68   7                 registration             DEA Registration              DEA registration (if applicable)                              0            {"must_be_active": true, "registration_type": "dea"}          2025-03-16 15:36:05.483802  2025-03-16 15:36:05.483802
+
+69   7                 insurance                Malpractice Insurance         Malpractice insurance                                         1            {"must_be_active": true, "insurance_type": "malpractice"}     2025-03-16 15:36:05.483802  2025-03-16 15:36:05.483803
+
+70   7                 identifier               NPI                           National Provider Identifier (NPI)                            1            {"must_be_valid": true, "identifier_type": "npi"}             2025-03-16 15:36:05.483803  2025-03-16 15:36:05.483803
+
+71   7                 background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.483804  2025-03-16 15:36:05.483804
+
+72   7                 immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.483804  2025-03-16 15:36:05.483805
+
+73   7                 certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.483805  2025-03-16 15:36:05.483805
+
+74   7                 continuing_education     Continuing Education          Required continuing education credits                         1            {"must_be_current": true, "education_type": "continuing"}     2025-03-16 15:36:05.483806  2025-03-16 15:36:05.483806
+
+75   7                 professional_references  Professional References       Professional references                                       1            {"must_be_verified": true, "minimum_references": 3}           2025-03-16 15:36:05.483807  2025-03-16 15:36:05.483807
+
+76   8                 degree                   Nursing Degree                Appropriate nursing degree (BSN, MSN)                         1            {"must_be_active": true, "must_be_accredited": true, "degree  2025-03-16 15:36:05.484866  2025-03-16 15:36:05.484866
+                                                                                                                                                         _types": ["BSN", "MSN"]}                                                                                            
+
+77   8                 license                  State License                 Current, unrestricted state nursing license                   1            {"must_be_active": true, "must_be_unrestricted": true, "lice  2025-03-16 15:36:05.484867  2025-03-16 15:36:05.484867
+                                                                                                                                                         nse_type": "nursing"}                                                                                               
+
+78   8                 certification            Specialty Certification       Specialty certifications (if applicable)                      0            {"must_be_active": true, "certification_type": "specialty"}   2025-03-16 15:36:05.484868  2025-03-16 15:36:05.484868
+
+79   8                 insurance                Malpractice Insurance         Malpractice insurance                                         1            {"must_be_active": true, "insurance_type": "malpractice"}     2025-03-16 15:36:05.484868  2025-03-16 15:36:05.484869
+
+80   8                 identifier               NPI                           National Provider Identifier (NPI)                            1            {"must_be_valid": true, "identifier_type": "npi"}             2025-03-16 15:36:05.484869  2025-03-16 15:36:05.484869
+
+81   8                 background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.484870  2025-03-16 15:36:05.484870
+
+82   8                 immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.484870  2025-03-16 15:36:05.484871
+
+83   8                 certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.484871  2025-03-16 15:36:05.484872
+
+84   8                 continuing_education     Continuing Education          Required continuing education credits                         1            {"must_be_current": true, "education_type": "continuing"}     2025-03-16 15:36:05.484872  2025-03-16 15:36:05.484873
+
+85   8                 professional_references  Professional References       Professional references                                       1            {"must_be_verified": true, "minimum_references": 3}           2025-03-16 15:36:05.484873  2025-03-16 15:36:05.484873
+
+86   9                 degree                   Role-Specific Degree          Appropriate degree or certification for the specific role     1            {"must_be_active": true, "must_be_accredited": true}          2025-03-16 15:36:05.485845  2025-03-16 15:36:05.485846
+
+87   9                 license                  State License                 State licensure or certification (if required)                0            {"must_be_active": true, "license_type": "nursing_related"}   2025-03-16 15:36:05.485847  2025-03-16 15:36:05.485847
+
+88   9                 certification            Specialty Certification       Specialty certifications (if applicable)                      0            {"must_be_active": true, "certification_type": "specialty"}   2025-03-16 15:36:05.485847  2025-03-16 15:36:05.485848
+
+89   9                 background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.485848  2025-03-16 15:36:05.485848
+
+90   9                 immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.485849  2025-03-16 15:36:05.485849
+
+91   9                 certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.485850  2025-03-16 15:36:05.485850
+
+92   9                 continuing_education     Continuing Education          Required continuing education credits                         1            {"must_be_current": true, "education_type": "continuing"}     2025-03-16 15:36:05.485850  2025-03-16 15:36:05.485851
+
+93   9                 professional_references  Professional References       Professional references                                       1            {"must_be_verified": true, "minimum_references": 3}           2025-03-16 15:36:05.485851  2025-03-16 15:36:05.485851
+
+94   10                degree                   PharmD Degree                 Doctor of Pharmacy (PharmD) degree                            1            {"must_be_active": true, "must_be_accredited": true, "degree  2025-03-16 15:36:05.486859  2025-03-16 15:36:05.486860
+                                                                                                                                                         _types": ["PharmD"]}                                                                                                
+
+95   10                license                  State License                 Current, unrestricted state pharmacy license                  1            {"must_be_active": true, "must_be_unrestricted": true, "lice  2025-03-16 15:36:05.486860  2025-03-16 15:36:05.486861
+                                                                                                                                                         nse_type": "pharmacy"}                                                                                              
+
+96   10                certification            Board Certification           Board certification (if applicable)                           0            {"must_be_active": true, "certification_type": "board_certif  2025-03-16 15:36:05.486861  2025-03-16 15:36:05.486862
+                                                                                                                                                         ication"}                                                                                                           
+
+97   10                registration             DEA Registration              DEA registration                                              1            {"must_be_active": true, "registration_type": "dea"}          2025-03-16 15:36:05.486862  2025-03-16 15:36:05.486862
+
+98   10                insurance                Malpractice Insurance         Malpractice insurance                                         1            {"must_be_active": true, "insurance_type": "malpractice"}     2025-03-16 15:36:05.486863  2025-03-16 15:36:05.486863
+
+99   10                identifier               NPI                           National Provider Identifier (NPI)                            1            {"must_be_valid": true, "identifier_type": "npi"}             2025-03-16 15:36:05.486863  2025-03-16 15:36:05.486864
+
+100  10                background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.486864  2025-03-16 15:36:05.486864
+
+101  10                immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.486865  2025-03-16 15:36:05.486865
+
+102  10                certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.486865  2025-03-16 15:36:05.486866
+
+103  10                continuing_education     Continuing Education          Required continuing education credits                         1            {"must_be_current": true, "education_type": "continuing"}     2025-03-16 15:36:05.486866  2025-03-16 15:36:05.486866
+
+104  10                professional_references  Professional References       Professional references                                       1            {"must_be_verified": true, "minimum_references": 3}           2025-03-16 15:36:05.486867  2025-03-16 15:36:05.486867
+
+105  11                degree                   Advanced Degree               Master's or Doctoral degree in relevant field                 1            {"must_be_active": true, "must_be_accredited": true, "degree  2025-03-16 15:36:05.487988  2025-03-16 15:36:05.487989
+                                                                                                                                                         _types": ["MSN", "DNP", "PA-C"]}                                                                                    
+
+106  11                license                  State License                 Current, unrestricted state license                           1            {"must_be_active": true, "license_type": "state_license"}     2025-03-16 15:36:05.487989  2025-03-16 15:36:05.487990
+
+107  11                certification            Specialty Certification       Specialty certifications (if applicable)                      0            {"must_be_active": true, "certification_type": "specialty"}   2025-03-16 15:36:05.487990  2025-03-16 15:36:05.487990
+
+108  11                registration             DEA Registration              DEA/CDS registration required                                 1            {"must_be_active": true, "registration_type": "controlled_su  2025-03-16 15:36:05.487991  2025-03-16 15:36:05.487991
+                                                                                                                                                         bstance_registration"}                                                                                              
+
+109  11                certification            Board Certification           Board certification required                                  1            {"must_be_active": true, "certification_type": "board_certif  2025-03-16 15:36:05.487991  2025-03-16 15:36:05.487992
+                                                                                                                                                         ication"}                                                                                                           
+
+110  11                insurance                Malpractice Insurance         Malpractice insurance                                         1            {"must_be_active": true, "insurance_type": "malpractice"}     2025-03-16 15:36:05.487992  2025-03-16 15:36:05.487992
+
+111  11                identifier               NPI                           National Provider Identifier (NPI)                            1            {"must_be_valid": true, "identifier_type": "npi"}             2025-03-16 15:36:05.487993  2025-03-16 15:36:05.487993
+
+112  11                background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.487993  2025-03-16 15:36:05.487994
+
+113  11                immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.487994  2025-03-16 15:36:05.487994
+
+114  11                certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.487995  2025-03-16 15:36:05.487995
+
+115  11                continuing_education     Continuing Education          Required continuing education credits                         1            {"must_be_current": true, "education_type": "continuing"}     2025-03-16 15:36:05.487995  2025-03-16 15:36:05.487996
+
+116  11                professional_references  Professional References       Professional references                                       1            {"must_be_verified": true, "minimum_references": 3}           2025-03-16 15:36:05.487996  2025-03-16 15:36:05.487996
+
+117  12                degree                   DPM Degree                    Doctor of Podiatric Medicine (DPM) degree                     1            {"must_be_active": true, "must_be_accredited": true, "degree  2025-03-16 15:36:05.489285  2025-03-16 15:36:05.489285
+                                                                                                                                                         _types": ["DPM"]}                                                                                                   
+
+118  12                degree                   Podiatric Surgery Degree      Podiatric Surgery (PS) degree                                 1            {"must_be_active": true, "must_be_accredited": true, "degree  2025-03-16 15:36:05.489286  2025-03-16 15:36:05.489286
+                                                                                                                                                         _types": ["DPM"]}                                                                                                   
+
+119  12                residency                Podiatric Residency           Podiatric residency program                                   1            {"must_be_completed": true, "program_type": "residency"}      2025-03-16 15:36:05.489286  2025-03-16 15:36:05.489287
+
+120  12                license                  State License                 Current, unrestricted state license                           1            {"must_be_active": true, "license_type": "state_license"}     2025-03-16 15:36:05.489287  2025-03-16 15:36:05.489287
+
+121  12                registration             DEA Registration              DEA/CDS registration required                                 1            {"must_be_active": true, "registration_type": "controlled_su  2025-03-16 15:36:05.489288  2025-03-16 15:36:05.489288
+                                                                                                                                                         bstance_registration"}                                                                                              
+
+122  12                certification            Board Certification           Board certification required                                  1            {"must_be_active": true, "certification_type": "board_certif  2025-03-16 15:36:05.489289  2025-03-16 15:36:05.489289
+                                                                                                                                                         ication"}                                                                                                           
+
+123  12                insurance                Malpractice Insurance         Malpractice insurance                                         1            {"must_be_active": true, "insurance_type": "malpractice"}     2025-03-16 15:36:05.489289  2025-03-16 15:36:05.489290
+
+124  12                identifier               NPI                           National Provider Identifier (NPI)                            1            {"must_be_valid": true, "identifier_type": "npi"}             2025-03-16 15:36:05.489290  2025-03-16 15:36:05.489290
+
+125  12                background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.489291  2025-03-16 15:36:05.489291
+
+126  12                immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.489291  2025-03-16 15:36:05.489292
+
+127  12                certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.489292  2025-03-16 15:36:05.489292
+
+128  12                continuing_education     Continuing Education          Required continuing education credits                         1            {"must_be_current": true, "education_type": "continuing"}     2025-03-16 15:36:05.489293  2025-03-16 15:36:05.489293
+
+129  12                professional_references  Professional References       Professional references                                       1            {"must_be_verified": true, "minimum_references": 3}           2025-03-16 15:36:05.489293  2025-03-16 15:36:05.489293
+
+130  13                degree                   Degree                        Appropriate degree or certification for the specific role     1            {"must_be_active": true, "must_be_accredited": true}          2025-03-16 15:36:05.490435  2025-03-16 15:36:05.490436
+
+131  13                license                  State License                 Current, unrestricted state license                           1            {"must_be_active": true, "license_type": "state_license"}     2025-03-16 15:36:05.490436  2025-03-16 15:36:05.490437
+
+132  13                certification            Specialty Certification       Specialty certifications (if applicable)                      0            {"must_be_active": true, "certification_type": "specialty"}   2025-03-16 15:36:05.490437  2025-03-16 15:36:05.490437
+
+133  13                insurance                Malpractice Insurance         Malpractice insurance                                         1            {"must_be_active": true, "insurance_type": "malpractice"}     2025-03-16 15:36:05.490438  2025-03-16 15:36:05.490438
+
+134  13                specialty_requirement    Specialty Requirement         Specialty requirement for the specific role                   0            {"must_be_active": true}                                      2025-03-16 15:36:05.490438  2025-03-16 15:36:05.490439
+
+135  13                identifier               NPI                           National Provider Identifier (NPI)                            1            {"must_be_valid": true, "identifier_type": "npi"}             2025-03-16 15:36:05.490439  2025-03-16 15:36:05.490439
+
+136  13                background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.490440  2025-03-16 15:36:05.490440
+
+137  13                immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.490440  2025-03-16 15:36:05.490441
+
+138  13                certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.490441  2025-03-16 15:36:05.490441
+
+139  13                continuing_education     Continuing Education          Required continuing education credits                         1            {"must_be_current": true, "education_type": "continuing"}     2025-03-16 15:36:05.490442  2025-03-16 15:36:05.490442
+
+140  13                professional_references  Professional References       Professional references                                       1            {"must_be_verified": true, "minimum_references": 3}           2025-03-16 15:36:05.490442  2025-03-16 15:36:05.490443
+
+141  14                degree                   Degree                        Appropriate degree or certification for the specific role     1            {"must_be_active": true, "must_be_accredited": true}          2025-03-16 15:36:05.491521  2025-03-16 15:36:05.491521
+
+142  14                license                  State License                 Current, unrestricted state license                           1            {"must_be_active": true, "license_type": "state_license"}     2025-03-16 15:36:05.491522  2025-03-16 15:36:05.491522
+
+143  14                certification            Specialty Certification       Specialty certifications (if applicable)                      0            {"must_be_active": true, "certification_type": "specialty"}   2025-03-16 15:36:05.491523  2025-03-16 15:36:05.491523
+
+144  14                insurance                Malpractice Insurance         Malpractice insurance                                         1            {"must_be_active": true, "insurance_type": "malpractice"}     2025-03-16 15:36:05.491523  2025-03-16 15:36:05.491524
+
+145  14                identifier               NPI                           National Provider Identifier (NPI)                            1            {"must_be_valid": true, "identifier_type": "npi"}             2025-03-16 15:36:05.491524  2025-03-16 15:36:05.491524
+
+146  14                background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.491525  2025-03-16 15:36:05.491525
+
+147  14                immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.491525  2025-03-16 15:36:05.491526
+
+148  14                certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.491526  2025-03-16 15:36:05.491526
+
+149  14                continuing_education     Continuing Education          Required continuing education credits                         1            {"must_be_current": true, "education_type": "continuing"}     2025-03-16 15:36:05.491527  2025-03-16 15:36:05.491527
+
+150  14                professional_references  Professional References       Professional references                                       1            {"must_be_verified": true, "minimum_references": 3}           2025-03-16 15:36:05.491527  2025-03-16 15:36:05.491528
+
+151  14                certification            ASHA Certification            ASHA certification for speech-language pathologists and audi  1            {"must_be_active": true, "certification_type": "asha"}        2025-03-16 15:36:05.491528  2025-03-16 15:36:05.491528
+                                                                              ologists                                                                                                                                                                                       
+
+152  15                enrollment               Enrollment                    Enrollment in a healthcare program                            1            {"must_be_active": true, "must_be_accredited": true}          2025-03-16 15:36:05.492413  2025-03-16 15:36:05.492414
+
+153  15                verification             Verification                  Verification of enrollment                                    1            {"must_be_verified": true}                                    2025-03-16 15:36:05.492414  2025-03-16 15:36:05.492415
+
+154  15                identity                 Proof of Identity             Government-issued identification                              1            {"must_be_valid": true, "id_type": "government", "verificati  2025-03-16 15:36:05.492415  2025-03-16 15:36:05.492415
+                                                                                                                                                         on_required": true}                                                                                                 
+
+155  15                background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.492416  2025-03-16 15:36:05.492416
+
+156  15                immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.492417  2025-03-16 15:36:05.492417
+
+157  16                degree                   Role-Specific Degree          Appropriate degree or certification for the specific role     1            {"must_be_active": true, "must_be_accredited": true}          2025-03-16 15:36:05.493098  2025-03-16 15:36:05.493099
+
+158  16                license                  State License                 State licensure or certification (if required)                0            {"must_be_active": true, "license_type": "role_specific"}     2025-03-16 15:36:05.493099  2025-03-16 15:36:05.493100
+
+159  16                certification            Specialty Certification       Specialty certifications (if applicable)                      0            {"must_be_active": true, "certification_type": "specialty"}   2025-03-16 15:36:05.493100  2025-03-16 15:36:05.493100
+
+160  16                insurance                Malpractice Insurance         Malpractice insurance (if applicable)                         0            {"must_be_active": true, "insurance_type": "malpractice"}     2025-03-16 15:36:05.493101  2025-03-16 15:36:05.493101
+
+161  16                identifier               NPI                           National Provider Identifier (NPI) (if applicable)            0            {"must_be_valid": true, "identifier_type": "npi"}             2025-03-16 15:36:05.493101  2025-03-16 15:36:05.493102
+
+162  16                background_check         Background Check              Background check and verification of work history             1            {"must_be_completed": true, "check_type": "background"}       2025-03-16 15:36:05.493102  2025-03-16 15:36:05.493103
+
+163  16                immunization             Immunization Records          Current immunization records                                  1            {"must_be_current": true, "record_type": "immunization"}      2025-03-16 15:36:05.493103  2025-03-16 15:36:05.493103
+
+164  16                certification            CPR Certification             Current CPR certification                                     1            {"must_be_active": true, "certification_type": "cpr"}         2025-03-16 15:36:05.493104  2025-03-16 15:36:05.493104
+sqlite> 

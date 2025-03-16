@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Container, Typography, Card as MuiCard, CardHeader as MuiCardHeader, CardContent as MuiCardContent } from "@mui/material"
+import { Container, Typography, Card as MuiCard, CardHeader as MuiCardHeader, CardContent as MuiCardContent, Tabs, Tab, Box } from "@mui/material"
 import { ArrowForward } from "@mui/icons-material"
 import { RuleList } from "@/components/RuleList"
 import { AddRuleForm } from "@/components/AddRuleForm"
@@ -9,6 +9,7 @@ import { ViewToggle } from "@/components/ViewToggle"
 import { NPISearch } from "@/components/NPISearch"
 import { SignedIn, SignedOut, SignInButton, useSignIn } from "@clerk/nextjs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Integrations } from "@/components/Integrations"
 
 // Add the interface for type safety
 interface SearchResult {
@@ -28,9 +29,36 @@ interface NPIValidationResponse {
   rawApiResponse: any
 }
 
+interface TabPanelProps {
+  children?: React.ReactNode
+  index: number
+  value: number
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`admin-tabpanel-${index}`}
+      aria-labelledby={`admin-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+    </div>
+  )
+}
+
 export default function Home() {
   const [currentView, setCurrentView] = useState<"admin" | "search">("admin")
+  const [adminTabValue, setAdminTabValue] = useState(0)
   const [loading, setLoading] = useState(false)
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setAdminTabValue(newValue)
+  }
 
   const handleSearch = async (npi: string): Promise<NPIValidationResponse> => {
     setLoading(true)
@@ -113,13 +141,32 @@ export default function Home() {
         {currentView === "admin" ? (
           <>
             <Typography variant="h4" component="h1" gutterBottom>
-              Provider Credentialing Rules
+              Admin Dashboard
             </Typography>
-            <Typography variant="subtitle1" gutterBottom>
-              Manage provider types and their credentialing requirements.
-            </Typography>
-            <AddRuleForm />
-            <RuleList />
+            
+            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+              <Tabs 
+                value={adminTabValue} 
+                onChange={handleTabChange}
+                aria-label="admin dashboard tabs"
+              >
+                <Tab label="Provider Rules" />
+                <Tab label="Integrations" />
+              </Tabs>
+            </Box>
+
+            <TabPanel value={adminTabValue} index={0}>
+              <AddRuleForm onRuleAdded={() => {
+                // This will trigger a refresh of the RuleList
+                // You might want to use a more sophisticated state management solution
+                // like React Query for production
+              }} />
+              <RuleList />
+            </TabPanel>
+
+            <TabPanel value={adminTabValue} index={1}>
+              <Integrations />
+            </TabPanel>
           </>
         ) : (
           <>

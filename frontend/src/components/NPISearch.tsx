@@ -19,6 +19,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Chip
 } from "@mui/material"
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"
 import CancelIcon from "@mui/icons-material/Cancel"
@@ -26,19 +27,57 @@ import CheckIcon from "@mui/icons-material/Check"
 import CloseIcon from "@mui/icons-material/Close"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import SearchIcon from "@mui/icons-material/Search"
-import { License, NPIValidationResponse } from '../types/providerTypes'
 
-// Update the SearchResult interface to match the actual API response structure
+interface ValidationRule {
+  must_be_active?: boolean;
+  must_be_accredited?: boolean;
+  must_be_unrestricted?: boolean;
+  must_be_completed?: boolean;
+  must_be_valid?: boolean;
+  must_be_current?: boolean;
+  must_be_verified?: boolean;
+  verification_period_years?: number;
+  minimum_references?: number;
+  degree_types?: string[];
+  license_type?: string;
+  certification_type?: string;
+  registration_type?: string;
+  insurance_type?: string;
+  identifier_type?: string;
+}
+
+interface Requirement {
+  requirement_type: string;
+  name: string;
+  description: string;
+  is_required: boolean;
+  is_valid: boolean;
+  validation_rules: ValidationRule;
+  validation_message?: string;
+}
+
+interface License {
+  category?: string;
+  status?: string;
+  number?: string;
+  type?: string;
+  issuer?: string;
+  expirationDate?: string;
+}
+
+interface ProviderType {
+  id: number;
+  code: string;
+  name: string;
+  requirements: Requirement[];
+}
+
 interface SearchResult {
   isEligible: boolean;
-  requirements: {
-    stateLicense: boolean;
-    deaCds: boolean;
-    boardCertification: boolean;
-    providerType: string;
-  };
+  provider_type: ProviderType;
+  requirements: Requirement[];
   rawApiResponse: {
-    rawApiResponse: {  // Note the double nesting
+    rawApiResponse: {
       'NPI Validation': {
         providerName: string;
         npi: string;
@@ -50,8 +89,8 @@ interface SearchResult {
 }
 
 interface NPISearchProps {
-  onSearch: (npi: string) => Promise<NPIValidationResponse>
-  loading: boolean
+  onSearch: (npi: string) => Promise<any>;
+  loading: boolean;
 }
 
 export function NPISearch({ onSearch, loading }: NPISearchProps) {
@@ -203,75 +242,34 @@ export function NPISearch({ onSearch, loading }: NPISearchProps) {
           </Typography>
           
           <Typography variant="h6" sx={{ color: 'text.primary', mb: 2, fontWeight: 'medium' }}>
-            Provider Type: {searchResult.requirements?.providerType || 'N/A'}
+            Provider Type: {searchResult.provider_type?.name || 'N/A'}
           </Typography>
 
-          <List sx={{ width: '100%' }}>
-            <ListItem sx={{ px: 0 }}>
-              <ListItemIcon>
-                {searchResult.requirements.stateLicense ? (
-                  <CheckIcon sx={{ color: 'success.main' }} />
-                ) : (
-                  <CloseIcon sx={{ color: 'error.main' }} />
-                )}
-              </ListItemIcon>
-              <ListItemText 
-                primary="State License"
-                secondary={searchResult?.rawApiResponse?.rawApiResponse?.Licenses
-                  ?.filter(license => 
-                    license.category?.toLowerCase() === 'state_license' && 
-                    license.status?.toLowerCase() === 'active'
-                  )
-                  .map(license => 
-                    `${license.issuer}: ${license.number} (Expires: ${formatExpirationDate(license.expirationDate)})`
-                  )
-                  .join(', ') || 'No active licenses found'}
-              />
-            </ListItem>
-            
-            <ListItem sx={{ px: 0 }}>
-              <ListItemIcon>
-                {searchResult.requirements.deaCds ? (
-                  <CheckIcon sx={{ color: 'success.main' }} />
-                ) : (
-                  <CloseIcon sx={{ color: 'error.main' }} />
-                )}
-              </ListItemIcon>
-              <ListItemText 
-                primary="DEA/CDS"
-                secondary={searchResult?.rawApiResponse?.rawApiResponse?.Licenses
-                  ?.filter(license => 
-                    license.category?.toLowerCase() === 'controlled_substance_registration' && 
-                    license.status?.toLowerCase() === 'active'
-                  )
-                  .map(license => 
-                    `${license.number} (Expires: ${formatExpirationDate(license.expirationDate)})`
-                  )
-                  .join(', ') || 'No active licenses found'}
-              />
-            </ListItem>
-            
-            <ListItem sx={{ px: 0 }}>
-              <ListItemIcon>
-                {searchResult.requirements.boardCertification ? (
-                  <CheckIcon sx={{ color: 'success.main' }} />
-                ) : (
-                  <CloseIcon sx={{ color: 'error.main' }} />
-                )}
-              </ListItemIcon>
-              <ListItemText 
-                primary="Board Certification"
-                secondary={searchResult?.rawApiResponse?.rawApiResponse?.Licenses
-                  ?.filter(license => 
-                    license.category?.toLowerCase() === 'board_certification' && 
-                    license.status?.toLowerCase() === 'active'
-                  )
-                  .map(license => 
-                    `${license.type} (Expires: ${formatExpirationDate(license.expirationDate)})`
-                  )
-                  .join(', ') || 'No active certifications found'}
-              />
-            </ListItem>
+          <List>
+            {searchResult.requirements.map((req) => (
+              <ListItem key={req.name}>
+                <ListItemIcon>
+                  {req.is_valid ? (
+                    <CheckIcon sx={{ color: 'success.main' }} />
+                  ) : (
+                    <CloseIcon sx={{ color: req.is_required ? 'error.main' : 'warning.main' }} />
+                  )}
+                </ListItemIcon>
+                <ListItemText
+                  primary={req.name}
+                  secondary={
+                    <>
+                      {req.description}
+                      {req.validation_message && (
+                        <Typography color={req.is_valid ? 'success.main' : 'error.main'}>
+                          {req.validation_message}
+                        </Typography>
+                      )}
+                    </>
+                  }
+                />
+              </ListItem>
+            ))}
           </List>
 
           <Box sx={{ mt: 3 }}>

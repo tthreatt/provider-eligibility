@@ -14,6 +14,39 @@ import {
 } from "@mui/material"
 import type { ProviderType } from "@/types/providerTypes"
 
+interface BackendProviderType {
+  id: number;
+  code: string;
+  name: string;
+  requirements: {
+    requirement_type: string;
+    name: string;
+    description: string;
+    is_required: boolean;
+    validation_rules: {
+      must_be_active: boolean;
+      [key: string]: any;
+    };
+  }[];
+}
+
+const convertToFrontendType = (backendType: BackendProviderType): ProviderType => {
+  return {
+    id: backendType.id.toString(),
+    name: backendType.name,
+    requirements: {
+      stateLicense: backendType.requirements.find(r => r.requirement_type === "license")?.is_required || false,
+      deaCds: backendType.requirements.find(r => r.requirement_type === "registration")?.is_required || false,
+      boardCertification: backendType.requirements.find(r => r.requirement_type === "certification")?.is_required || false,
+      degree: backendType.requirements.find(r => r.requirement_type === "degree")?.is_required || false,
+      residency: backendType.requirements.find(r => r.requirement_type === "residency")?.is_required || false,
+      malpracticeInsurance: backendType.requirements.find(r => r.requirement_type === "insurance")?.is_required || false,
+      backgroundCheck: backendType.requirements.find(r => r.requirement_type === "background_check")?.is_required || false,
+      workHistory: backendType.requirements.find(r => r.requirement_type === "work_history")?.is_required || false
+    }
+  };
+};
+
 interface EditRuleDialogProps {
   providerType: ProviderType
   isOpen: boolean
@@ -47,33 +80,18 @@ export function EditRuleDialog({ providerType, isOpen, onClose, onSave }: EditRu
           {editedProviderType.name}
         </Typography>
         <FormGroup>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={editedProviderType.requirements.stateLicense}
-                onChange={() => handleRequirementChange("stateLicense")}
-              />
-            }
-            label="State License Required"
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={editedProviderType.requirements.deaCds}
-                onChange={() => handleRequirementChange("deaCds")}
-              />
-            }
-            label="DEA/CDS Required"
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={editedProviderType.requirements.boardCertification}
-                onChange={() => handleRequirementChange("boardCertification")}
-              />
-            }
-            label="Board Certification Required"
-          />
+          {Object.entries(editedProviderType.requirements).map(([key, value]) => (
+            <FormControlLabel
+              key={key}
+              control={
+                <Checkbox
+                  checked={value}
+                  onChange={() => handleRequirementChange(key as keyof ProviderType["requirements"])}
+                />
+              }
+              label={`${key.replace(/([A-Z])/g, ' $1').trim()} Required`}
+            />
+          ))}
         </FormGroup>
       </DialogContent>
       <DialogActions>
