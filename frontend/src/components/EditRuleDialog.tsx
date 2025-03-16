@@ -12,7 +12,7 @@ import {
   Checkbox,
   Typography,
 } from "@mui/material"
-import type { ProviderType } from "@/types/providerTypes"
+import type { ProviderType } from "@/types/defaultProviderTypes"
 
 interface BackendProviderType {
   id: number;

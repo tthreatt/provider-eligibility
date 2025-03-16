@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server'
 import { providerTypes } from '@/config/providerRules';
-import { License } from '@/types/providerTypes';
+import { License } from '@/types/defaultProviderTypes';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
 const API_KEY = process.env.API_KEY;

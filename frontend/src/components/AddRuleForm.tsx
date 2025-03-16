@@ -17,7 +17,7 @@ import {
   Box,
   Alert,
 } from "@mui/material"
-import type { ProviderType } from "@/types/providerTypes"
+import type { ProviderType } from "@/types/defaultProviderTypes"
 
 const providerTypeOptions = [
   "Allopathic & Osteopathic Physicians",

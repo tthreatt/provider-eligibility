@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Paper, List, ListItem, IconButton, Typography, Grid, Chip, Box, Alert } from "@mui/material"
+import { Paper, List, ListItem, IconButton, Typography, Grid, Chip, Box, Alert, Button, CircularProgress } from "@mui/material"
 import EditIcon from "@mui/icons-material/Edit"
 import DeleteIcon from "@mui/icons-material/Delete"
-import type { ProviderType } from "@/types/providerTypes"
+import type { ProviderType } from "@/types/defaultProviderTypes"
 import { EditRuleDialog } from "./EditRuleDialog"
+import { fetchProviderRules, API_ROUTES } from '@/config/api'
 
 // Add these interfaces to match the backend structure
 interface ValidationRule {
@@ -32,44 +33,40 @@ interface ApiProviderType {
 export function RuleList() {
   const [providerTypes, setProviderTypes] = useState<ProviderType[]>([])
   const [editingProviderType, setEditingProviderType] = useState<ProviderType | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchProviderTypes = async () => {
+  const loadProviderTypes = async () => {
+    setIsLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/api/eligibility/rules');
-      if (!response.ok) {
-        throw new Error('Failed to fetch provider types');
-      }
-      const data: ApiProviderType[] = await response.json();
-      
+      const data = await fetchProviderRules()
       // Convert API data to match frontend structure
-      const convertedData: ProviderType[] = data.map(pt => ({
+      const convertedData = data.map((pt: any) => ({
         id: pt.id.toString(),
         name: pt.name,
         requirements: {
-          stateLicense: pt.requirements.some(r => r.requirement_type === 'license' && r.is_required),
-          deaCds: pt.requirements.some(r => r.requirement_type === 'registration' && r.is_required),
-          boardCertification: pt.requirements.some(r => r.requirement_type === 'certification' && r.is_required),
-          degree: pt.requirements.some(r => r.requirement_type === 'degree' && r.is_required),
-          residency: pt.requirements.some(r => r.requirement_type === 'residency' && r.is_required),
-          malpracticeInsurance: pt.requirements.some(r => r.requirement_type === 'insurance' && r.is_required),
-          backgroundCheck: pt.requirements.some(r => r.requirement_type === 'background_check' && r.is_required),
-          workHistory: pt.requirements.some(r => r.requirement_type === 'work_history' && r.is_required),
+          stateLicense: pt.requirements.some((r: any) => r.requirement_type === 'license' && r.is_required),
+          deaCds: pt.requirements.some((r: any) => r.requirement_type === 'registration' && r.is_required),
+          boardCertification: pt.requirements.some((r: any) => r.requirement_type === 'certification' && r.is_required),
+          degree: pt.requirements.some((r: any) => r.requirement_type === 'degree' && r.is_required),
+          residency: pt.requirements.some((r: any) => r.requirement_type === 'residency' && r.is_required),
+          malpracticeInsurance: pt.requirements.some((r: any) => r.requirement_type === 'insurance' && r.is_required),
+          backgroundCheck: pt.requirements.some((r: any) => r.requirement_type === 'background_check' && r.is_required),
+          workHistory: pt.requirements.some((r: any) => r.requirement_type === 'work_history' && r.is_required),
         }
-      }));
-
-      setProviderTypes(convertedData);
-      console.log('API Response:', data); // Debug log
-      console.log('Converted provider types:', convertedData); // Debug log
+      }))
+      setProviderTypes(convertedData)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Fetch error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred')
+      console.error('Fetch error:', err)
+    } finally {
+      setIsLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchProviderTypes();
-  }, []);
+    loadProviderTypes()
+  }, [])
 
   const deleteProviderType = async (id: string) => {
     try {
@@ -81,7 +78,7 @@ export function RuleList() {
         throw new Error('Failed to delete provider type');
       }
 
-      fetchProviderTypes(); // Refresh the list
+      loadProviderTypes(); // Refresh the list
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
@@ -192,7 +189,7 @@ export function RuleList() {
         throw new Error('Failed to update provider type');
       }
 
-      fetchProviderTypes(); // Refresh the list
+      loadProviderTypes(); // Refresh the list
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
@@ -200,38 +197,56 @@ export function RuleList() {
 
   return (
     <Paper elevation={3} sx={{ mt: 3 }}>
-      {error && <Alert severity="error" sx={{ m: 2 }}>{error}</Alert>}
+      {error && (
+        <Alert 
+          severity="error" 
+          sx={{ m: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={loadProviderTypes}>
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      )}
       
-      <List>
-        {providerTypes.map((type) => (
-          <ListItem key={type.id} divider>
-            <Box sx={{ flex: 1 }}>
-              <Typography color="primary" variant="subtitle1">
-                {type.name}
-              </Typography>
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                {Object.entries(type.requirements).map(([key, value]) => (
-                  <Grid item key={key}>
-                    <Chip
-                      label={`${key.replace(/([A-Z])/g, ' $1').trim()}: ${value ? "Required" : "Not Required"}`}
-                      color={value ? "success" : "default"}
-                      variant="outlined"
-                    />
-                  </Grid>
-                ))}
-              </Grid>
-            </Box>
-            <Box>
-              <IconButton edge="end" aria-label="edit" onClick={() => openEditDialog(type)}>
-                <EditIcon />
-              </IconButton>
-              <IconButton edge="end" aria-label="delete" onClick={() => deleteProviderType(type.id)}>
-                <DeleteIcon />
-              </IconButton>
-            </Box>
-          </ListItem>
-        ))}
-      </List>
+      {isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <List>
+          {providerTypes.map((type) => (
+            <ListItem key={type.id} divider>
+              <Box sx={{ flex: 1 }}>
+                <Typography color="primary" variant="subtitle1">
+                  {type.name}
+                </Typography>
+                <Grid container spacing={2} sx={{ mt: 1 }}>
+                  {Object.entries(type.requirements).map(([key, value]) => (
+                    <Grid item key={key}>
+                      <Chip
+                        label={`${key.replace(/([A-Z])/g, ' $1').trim()}: ${value ? "Required" : "Not Required"}`}
+                        color={value ? "success" : "default"}
+                        variant="outlined"
+                      />
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+              <Box>
+                <IconButton edge="end" aria-label="edit" onClick={() => openEditDialog(type)}>
+                  <EditIcon />
+                </IconButton>
+                <IconButton edge="end" aria-label="delete" onClick={() => deleteProviderType(type.id)}>
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+            </ListItem>
+          ))}
+        </List>
+      )}
 
       {editingProviderType && (
         <EditRuleDialog
