@@ -33,14 +33,15 @@ app = FastAPI(
 )
 
 # Configure CORS
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://provider-eligibility.vercel.app",  # Add your Vercel domain
+]
+
 app.add_middleware(
     CORSMiddleware,
-    # Update this to include your Vercel frontend URL
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "https://provider-eligibility.vercel.app/"  # Add your Vercel frontend URL
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
