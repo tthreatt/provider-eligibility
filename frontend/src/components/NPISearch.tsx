@@ -50,23 +50,44 @@ interface Requirement {
   license_match?: License;
 }
 
+// Update the interface to include the nested licenses structure
+interface NPIValidation {
+  providerName: string;
+  npi: string;
+  updateDate: string;
+  providerType?: string;
+  Code?: string;
+  licenses?: Array<{
+  code: string;
+    number: string;
+    state: string;
+    switch: string;
+  }>;
+  entityType?: string;
+  enumerationDate?: string;
+  gender?: string;
+  additionalProviderData?: Array<any>;
+}
+
 interface EligibilityResponse {
   isEligible: boolean;
   requirements: Requirement[];
   rawApiResponse: {
-    'NPI Validation': {
-      providerName: string;
-      npi: string;
-      updateDate: string;
-      providerType?: string;
-    };
-    Licenses: License[];
+    'NPI Validation': NPIValidation;
+      Licenses: License[];
   };
 }
 
 // Update NPISearchProps to match what we're actually using
 interface NPISearchProps {
   loading: boolean;
+}
+
+// Add interface for rule structure
+interface Rule {
+  name: string;
+  provider_type: string;
+  requirements: Requirement[];
 }
 
 export function NPISearch({ loading }: NPISearchProps) {
@@ -86,12 +107,12 @@ export function NPISearch({ loading }: NPISearchProps) {
       // Fetch both provider data and rules concurrently
       const [providerResponse, rulesResponse] = await Promise.all([
         fetch('/api/fetch-provider-data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ npi }),
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ npi }),
         }),
         fetch('/api/eligibility/rules', {
           method: 'GET',
@@ -106,29 +127,56 @@ export function NPISearch({ loading }: NPISearchProps) {
       }
 
       const providerData = await providerResponse.json();
-      const rules = await rulesResponse.json();
-
-      // Debug logging
-      console.log('Raw Provider Data:', providerData);
-      console.log('Raw Rules:', rules);
+      const rules = await rulesResponse.json() as Rule[];
 
       // Get provider details from NPI Validation - fix nested structure
       const npiValidation = providerData.rawApiResponse.rawApiResponse['NPI Validation'];
       const licenses = providerData.rawApiResponse.rawApiResponse.Licenses;
+      
+      // Get all unique provider types from licenses
+      const providerTypes = [...new Set(npiValidation?.licenses?.map((license: { code: string }) => {
+        // Extract the category (middle part) from the code string
+        // Format: "207R00000X - Allopathic & Osteopathic Physicians - Internal Medicine"
+        const parts = license.code.split(' - ');
+        return parts.length > 1 ? parts[1] : license.code;
+      }) || [])];
 
-      console.log('NPI Validation:', npiValidation);
-      console.log('Provider Type:', npiValidation?.providerType);
-      console.log('Licenses:', licenses);
+      // Use the first provider type for matching rules
+      const providerType = providerTypes[0];
+
+      // Debug logging - moved after variable declarations
+      console.log('Raw Provider Data:', providerData);
+      console.log('Raw Rules:', rules);
+      console.log('Provider Types Found:', providerTypes);
+      console.log('Extracted Category:', providerType);
+      console.log('Available Rule Names:', rules.map(rule => rule.name));
+      console.log('All provider types found:', providerTypes);
+
+      // Warn if multiple different provider types are found
+      if (providerTypes.length > 1) {
+        console.warn('Multiple different provider types found:', providerTypes);
+      }
+      
+      console.log('Using provider type for matching:', providerType);
 
       // Find matching rules for this provider type
-      const providerTypeRules = rules.find((rule: any) => 
-        rule.provider_type === npiValidation?.providerType
-      );
+      const providerTypeRules = rules.find((rule: Rule) => {
+        // Match against rule.name
+        return rule.name === providerType;
+      });
 
       console.log('Matching Provider Rules:', providerTypeRules);
 
       if (!providerTypeRules) {
-        throw new Error(`No rules found for provider type: ${npiValidation?.providerType}`);
+        // Log available rule names for debugging
+        const availableRuleNames = rules.map(rule => rule.name);
+        console.log('Available rule names:', availableRuleNames);
+        
+        throw new Error(
+          `No matching rules found.\n` +
+          `Provider Category: ${providerType || 'undefined'}\n` +
+          `Available Categories: ${availableRuleNames.join(', ')}`
+        );
       }
 
       // Process requirements for the specific provider type
@@ -192,7 +240,7 @@ export function NPISearch({ loading }: NPISearchProps) {
       setSearchResult({
         isEligible,
         requirements: processedRequirements,
-        rawApiResponse: providerData.rawApiResponse.rawApiResponse // Fix: Access the deeply nested rawApiResponse
+        rawApiResponse: providerData.rawApiResponse.rawApiResponse
       });
 
     } catch (err) {
@@ -202,30 +250,26 @@ export function NPISearch({ loading }: NPISearchProps) {
   };
 
   useEffect(() => {
-    if (searchResult) {
-      console.log('Rendering searchResult:', {
-        isEligible: searchResult.isEligible,
-        providerName: searchResult.rawApiResponse['NPI Validation']?.providerName,
-        npi: searchResult.rawApiResponse['NPI Validation']?.npi,
-        requirements: searchResult.requirements,
-        licenses: searchResult.rawApiResponse.Licenses
-      });
+    if (searchResult?.rawApiResponse?.['NPI Validation']) {
+      // Data structure debug logging
+      const npiValidation = searchResult.rawApiResponse['NPI Validation'];
+      console.group('Provider Data Structure');
+      console.log('NPI Validation:', npiValidation);
+      console.log('NPI Validation Licenses:', npiValidation?.licenses);
+      console.log('First License:', npiValidation?.licenses?.[0]);
+      console.log('Provider Type Code:', npiValidation?.licenses?.[0]?.code);
+      console.groupEnd();
 
-      // Debug each requirement
+      // Requirements debug logging
+      console.group('Requirements');
       searchResult.requirements.forEach(requirement => {
-        console.log(`${requirement.name} Status:`, {
+        console.log(`${requirement.name}:`, {
           type: requirement.requirement_type,
           isValid: requirement.is_valid,
-          isRequired: requirement.is_required,
-          validationMessage: requirement.validation_message,
-          rules: requirement.validation_rules
+          message: requirement.validation_message
         });
       });
-
-      // Still keep license debugging for reference
-      console.log('All Active Licenses:', searchResult.rawApiResponse.Licenses?.filter(l => 
-        l.status?.toLowerCase() === 'active'
-      ));
+      console.groupEnd();
     }
   }, [searchResult]);
 
@@ -268,18 +312,28 @@ export function NPISearch({ loading }: NPISearchProps) {
             variant="contained"
             disabled={loading || !npi}
             sx={{
-              minWidth: '150px',
+              minWidth: { xs: '48px', sm: '150px' },
               whiteSpace: 'nowrap',
               textTransform: 'uppercase',
-              fontSize: '0.9rem',
-              py: 1.5,
-              px: 3
+              fontSize: { xs: '0.8rem', sm: '0.9rem' },
+              height: '56px',
+              px: { xs: 2, sm: 4 },
+              borderRadius: 1,
+              boxShadow: 2,
+              '&:hover': {
+                boxShadow: 4
+              }
             }}
           >
             {loading ? (
               <CircularProgress size={20} />
             ) : (
-              <><SearchIcon sx={{ mr: 1 }} /> Check Eligibility</>
+              <>
+                <SearchIcon sx={{ mr: { xs: 0, sm: 1 }, fontSize: { xs: '1.2rem', sm: '1.4rem' } }} />
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Check Eligibility
+                </Box>
+              </>
             )}
           </Button>
         </Box>
@@ -300,12 +354,16 @@ export function NPISearch({ loading }: NPISearchProps) {
             {searchResult.isEligible ? "Provider is Eligible" : "Provider is Not Eligible"}
           </AlertTitle>
           
-          <Typography variant="h6" sx={{ color: 'text.primary', mt: 2, fontWeight: 'medium' }}>
-            Provider: {searchResult.rawApiResponse['NPI Validation']?.providerName || 'N/A'}
+          <Typography variant="h6" sx={{ color: 'text.primary', mt: 2, mb: 1, fontWeight: 'medium' }}>
+            Provider: {searchResult?.rawApiResponse?.['NPI Validation']?.providerName || 'N/A'}
           </Typography>
           
-          <Typography variant="subtitle1" sx={{ color: 'text.secondary', mb: 3 }}>
-            NPI: {searchResult.rawApiResponse['NPI Validation']?.npi || 'N/A'}
+          <Typography variant="subtitle1" sx={{ color: 'text.secondary', mb: 1 }}>
+            NPI: {searchResult?.rawApiResponse?.['NPI Validation']?.npi || 'N/A'}
+          </Typography>
+          
+          <Typography variant="subtitle1" sx={{ color: 'text.secondary', mb: 1 }}>
+            Provider Type: {searchResult?.rawApiResponse?.['NPI Validation']?.licenses?.[0]?.code || 'N/A'}
           </Typography>
 
           <List sx={{ width: '100%' }}>
@@ -328,56 +386,56 @@ export function NPISearch({ loading }: NPISearchProps) {
               })
               .map((requirement) => (
                 <ListItem key={requirement.name} sx={{ px: 0 }}>
-                  <ListItemIcon>
+                <ListItemIcon>
                     {requirement.is_valid ? (
-                      <CheckIcon sx={{ color: 'success.main' }} />
-                    ) : (
+                    <CheckIcon sx={{ color: 'success.main' }} />
+                  ) : (
                       <CloseIcon sx={{ color: requirement.is_required ? 'error.main' : 'warning.main' }} />
-                    )}
-                  </ListItemIcon>
-                  <ListItemText 
+                  )}
+                </ListItemIcon>
+                <ListItemText
                     primary={requirement.name}
-                    secondary={
-                      <>
-                        <Typography component="span" display="block" variant="body2">
-                          {requirement.description}
+                  secondary={
+                    <Box component="div">
+                      <Typography component="div" variant="body2">
+                        {requirement.description}
+                      </Typography>
+                      {requirement.validation_message && (
+                        <Typography 
+                          component="div"
+                          variant="body2"
+                          sx={{ 
+                            color: requirement.is_valid ? 'success.main' : 'error.main',
+                            mt: 0.5 
+                          }}
+                        >
+                          {requirement.validation_message}
                         </Typography>
-                        {requirement.validation_message && (
-                          <Typography 
-                            component="span" 
-                            display="block"
-                            sx={{ 
-                              color: requirement.is_valid ? 'success.main' : 'error.main',
-                              mt: 0.5 
-                            }}
-                          >
-                            {requirement.validation_message}
+                      )}
+                      {requirement.is_valid && requirement.license_match && 
+                       (requirement.name === "State License" || 
+                        requirement.name === "DEA Registration" || 
+                        requirement.name === "Board Certification") && (
+                        <Box sx={{ mt: 1, pl: 2, borderLeft: '2px solid #e0e0e0' }}>
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            <strong>Issuer:</strong> {requirement.license_match.issuer || 'N/A'}
                           </Typography>
-                        )}
-                        {requirement.is_valid && requirement.license_match && 
-                         (requirement.name === "State License" || 
-                          requirement.name === "DEA Registration" || 
-                          requirement.name === "Board Certification") && (
-                          <Box sx={{ mt: 1, pl: 2, borderLeft: '2px solid #e0e0e0' }}>
-                            <Typography variant="body2" sx={{ mt: 0.5 }}>
-                              <strong>Issuer:</strong> {requirement.license_match.issuer || 'N/A'}
-                            </Typography>
-                            <Typography variant="body2" sx={{ mt: 0.5 }}>
-                              <strong>Type:</strong> {requirement.license_match.type || 'N/A'}
-                            </Typography>
-                            <Typography variant="body2" sx={{ mt: 0.5 }}>
-                              <strong>Number:</strong> {requirement.license_match.number || 'N/A'}
-                            </Typography>
-                            <Typography variant="body2" sx={{ mt: 0.5 }}>
-                              <strong>Expiration Date:</strong> {formatExpirationDate(requirement.license_match.expirationDate)}
-                            </Typography>
-                          </Box>
-                        )}
-                      </>
-                    }
-                  />
-                </ListItem>
-              ))}
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            <strong>Type:</strong> {requirement.license_match.type || 'N/A'}
+                          </Typography>
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            <strong>Number:</strong> {requirement.license_match.number || 'N/A'}
+                          </Typography>
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            <strong>Expiration Date:</strong> {formatExpirationDate(requirement.license_match.expirationDate)}
+                          </Typography>
+                        </Box>
+                    )}
+                    </Box>
+                  }
+                />
+              </ListItem>
+            ))}
           </List>
 
           <Box sx={{ mt: 3 }}>
@@ -385,7 +443,7 @@ export function NPISearch({ loading }: NPISearchProps) {
               Last Updated:
             </Typography>
             <Typography variant="body2">
-              {searchResult.rawApiResponse['NPI Validation']?.updateDate || 'N/A'}
+              {searchResult?.rawApiResponse?.['NPI Validation']?.updateDate || 'N/A'}
             </Typography>
           </Box>
         </Alert>
