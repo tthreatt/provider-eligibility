@@ -20,6 +20,7 @@ import {
   AccordionSummary,
   AccordionDetails,
   Chip,
+  Divider,
 } from "@mui/material"
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"
 import CancelIcon from "@mui/icons-material/Cancel"
@@ -85,6 +86,13 @@ interface Requirement {
     expirationDate?: string;
     status?: string;
     boardActions?: string[];
+    multipleDetails?: Array<{
+      issuer?: string;
+      number?: string;
+      status?: string;
+      expirationDate?: string;
+      boardActions?: string[];
+    }>;
   };
 }
 
@@ -99,6 +107,18 @@ interface ProcessedResult {
 
 interface NPISearchProps {
   loading?: boolean;
+}
+
+interface BoardAction {
+  text: string;
+}
+
+interface DetailType {
+  issuer?: string;
+  number?: string;
+  status?: string;
+  expirationDate?: string;
+  boardActions?: string[];
 }
 
 export function NPISearch({ loading = false }: NPISearchProps) {
@@ -161,19 +181,33 @@ export function NPISearch({ loading = false }: NPISearchProps) {
         requirements: providerTypeRules.requirements.map((rule: any) => {
           let isValid = false;
           let validationMessage = '';
-          let details = undefined;
+          let details: Requirement['details'] = undefined;
 
           // Find matching license based on requirement type
-          const matchingLicense = providerData.rawApiResponse['Licenses']?.find((license: License) => {
+          const matchingLicenses = providerData.rawApiResponse['Licenses']?.filter((license: License) => {
             switch (rule.requirement_type) {
               case 'registration':
                 return license.category === 'controlled_substance_registration';
               case 'license':
                 return license.category === 'state_license';
+              case 'certification':
+                // Match board certifications (ABMS and other board certifications)
+                return (
+                  (license.category === 'board_certification' || license.issuer?.includes('ABMS')) &&
+                  license.type?.toLowerCase().includes('specialty')
+                );
+              case 'cpr_certification':
+                // Only match actual CPR certifications
+                return license.type?.toLowerCase().includes('cpr') && !license.type?.toLowerCase().includes('specialty');
               default:
                 return false;
             }
-          });
+          }) || [];
+
+          // Filter to only show active licenses
+          const activeLicenses = matchingLicenses.filter(
+            (license: License) => license.status?.toLowerCase() === 'active'
+          );
 
           switch (rule.requirement_type) {
             case 'identifier':
@@ -187,36 +221,40 @@ export function NPISearch({ loading = false }: NPISearchProps) {
               break;
             case 'license':
             case 'registration':
-              isValid = Boolean(matchingLicense?.status?.toLowerCase() === 'active');
+            case 'certification':
+            case 'cpr_certification':
+              isValid = activeLicenses.length > 0;
               validationMessage = isValid 
                 ? `Valid ${rule.name} found`
                 : `No valid ${rule.name} found`;
-              if (matchingLicense) {
-                details = {
-                  issuer: matchingLicense.issuer || matchingLicense.state,
-                  number: matchingLicense.number,
-                  status: matchingLicense.status,
-                  expirationDate: matchingLicense.expirationDate,
-                  boardActions: matchingLicense.hasBoardAction 
-                    ? matchingLicense.boardActionData?.boardActionTexts 
+              
+              if (activeLicenses.length > 0) {
+                // Only include active licenses in the details
+                const licenseDetails = activeLicenses.map((license: License) => ({
+                  issuer: license.issuer || license.state,
+                  number: license.number,
+                  status: license.status,
+                  expirationDate: license.expirationDate,
+                  boardActions: license.hasBoardAction 
+                    ? license.boardActionData?.boardActionTexts 
                     : undefined
+                }));
+                
+                details = {
+                  multipleDetails: licenseDetails
                 };
               }
               break;
             case 'background_check':
-              isValid = false; // No background check data available
+              isValid = false;
               validationMessage = 'No background check verification found';
               break;
             case 'insurance':
-              isValid = false; // No malpractice insurance data available
+              isValid = false;
               validationMessage = 'No malpractice insurance verification found';
               break;
-            case 'certification':
-              isValid = false; // No board certification data available
-              validationMessage = 'No board certification verification found';
-              break;
             case 'degree':
-              isValid = false; // No medical degree data available
+              isValid = false;
               validationMessage = 'No medical degree verification found';
               break;
             default:
@@ -378,106 +416,160 @@ export function NPISearch({ loading = false }: NPISearchProps) {
               .sort((a, b) => {
                 const aIndex = REQUIREMENT_ORDER.indexOf(a.name);
                 const bIndex = REQUIREMENT_ORDER.indexOf(b.name);
-                // If both requirements are in the order list, sort by their position
-                if (aIndex !== -1 && bIndex !== -1) {
-                  return aIndex - bIndex;
-                }
-                // If only one requirement is in the list, put it first
+                if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
                 if (aIndex !== -1) return -1;
                 if (bIndex !== -1) return 1;
-                // If neither requirement is in the list, maintain their original order
                 return 0;
               })
-              .map((requirement) => (
-              <ListItem key={requirement.id} sx={{ px: 0 }}>
-                <ListItemIcon>
-                  {requirement.is_valid ? (
-                    <CheckIcon sx={{ color: 'success.main' }} />
-                  ) : (
-                    <CloseIcon sx={{ color: requirement.is_required ? 'error.main' : 'warning.main' }} />
-                  )}
-                </ListItemIcon>
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {requirement.name}
-                      {requirement.details?.boardActions && (
-                        <Chip
-                          icon={<WarningIcon />}
-                          label="Board Actions"
-                          color="warning"
-                          size="small"
-                        />
-                      )}
-                    </Box>
-                  }
-                  secondary={
-                    <Box component="div">
-                      <Typography component="div" variant="body2">
-                        {requirement.description}
+              .map((requirement: Requirement) => {
+                const requirementDetails = requirement.details?.multipleDetails ? (
+                  <>
+                    {requirement.details.multipleDetails.map((detail: DetailType, index: number) => (
+                      <Box key={index} sx={{ mb: 2, '&:last-child': { mb: 0 } }}>
+                        {detail.issuer && (
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            <strong>Issuer:</strong> {detail.issuer}
+                          </Typography>
+                        )}
+                        {detail.number && (
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            <strong>Number:</strong> {detail.number}
+                          </Typography>
+                        )}
+                        {detail.status && (
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            <strong>Status:</strong> {detail.status}
+                          </Typography>
+                        )}
+                        {detail.expirationDate && (
+                          <Typography variant="body2" sx={{ mt: 0.5 }}>
+                            <strong>Expiration Date:</strong> {formatExpirationDate(detail.expirationDate)}
+                          </Typography>
+                        )}
+                        {detail.boardActions && (
+                          <Accordion sx={{ mt: 1 }}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <Typography color="warning.main">
+                                Board Actions Found
+                              </Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                              <List dense>
+                                {detail.boardActions.map((action: string, actionIndex: number) => (
+                                  <ListItem key={actionIndex}>
+                                    <ListItemIcon>
+                                      <WarningIcon color="warning" />
+                                    </ListItemIcon>
+                                    <ListItemText primary={action} />
+                                  </ListItem>
+                                ))}
+                              </List>
+                            </AccordionDetails>
+                          </Accordion>
+                        )}
+                        {index < (requirement.details?.multipleDetails?.length ?? 0) - 1 && (
+                          <Divider sx={{ my: 2 }} />
+                        )}
+                      </Box>
+                    ))}
+                  </>
+                ) : (
+                  <Box>
+                    {requirement.details?.issuer && (
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        <strong>Issuer:</strong> {requirement.details.issuer}
                       </Typography>
-                      {requirement.validation_message && (
-                        <Typography 
-                          component="div"
-                          variant="body2"
-                          sx={{ 
-                            color: requirement.is_valid ? 'success.main' : 'error.main',
-                            mt: 0.5 
-                          }}
-                        >
-                          {requirement.validation_message}
-                        </Typography>
+                    )}
+                    {requirement.details?.number && (
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        <strong>Number:</strong> {requirement.details.number}
+                      </Typography>
+                    )}
+                    {requirement.details?.status && (
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        <strong>Status:</strong> {requirement.details.status}
+                      </Typography>
+                    )}
+                    {requirement.details?.expirationDate && (
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        <strong>Expiration Date:</strong> {formatExpirationDate(requirement.details.expirationDate)}
+                      </Typography>
+                    )}
+                    {requirement.details?.boardActions && (
+                      <Accordion sx={{ mt: 1 }}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                          <Typography color="warning.main">
+                            Board Actions Found
+                          </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                          <List dense>
+                            {requirement.details.boardActions.map((action: string, index: number) => (
+                              <ListItem key={index}>
+                                <ListItemIcon>
+                                  <WarningIcon color="warning" />
+                                </ListItemIcon>
+                                <ListItemText primary={action} />
+                              </ListItem>
+                            ))}
+                          </List>
+                        </AccordionDetails>
+                      </Accordion>
+                    )}
+                  </Box>
+                );
+
+                return (
+                  <ListItem key={requirement.id} sx={{ px: 0 }}>
+                    <ListItemIcon>
+                      {requirement.is_valid ? (
+                        <CheckIcon sx={{ color: 'success.main' }} />
+                      ) : (
+                        <CloseIcon sx={{ color: requirement.is_required ? 'error.main' : 'warning.main' }} />
                       )}
-                      {requirement.is_valid && requirement.details && (
-                        <Box sx={{ mt: 1, pl: 2, borderLeft: '2px solid #e0e0e0' }}>
-                          {requirement.details.issuer && (
-                            <Typography variant="body2" sx={{ mt: 0.5 }}>
-                              <strong>Issuer:</strong> {requirement.details.issuer}
-                            </Typography>
-                          )}
-                          {requirement.details.number && (
-                            <Typography variant="body2" sx={{ mt: 0.5 }}>
-                              <strong>Number:</strong> {requirement.details.number}
-                            </Typography>
-                          )}
-                          {requirement.details.expirationDate && (
-                            <Typography variant="body2" sx={{ mt: 0.5 }}>
-                              <strong>Expiration Date:</strong> {formatExpirationDate(requirement.details.expirationDate)}
-                            </Typography>
-                          )}
-                          {requirement.details.status && (
-                            <Typography variant="body2" sx={{ mt: 0.5 }}>
-                              <strong>Status:</strong> {requirement.details.status}
-                            </Typography>
-                          )}
-                          {requirement.details.boardActions && (
-                            <Accordion sx={{ mt: 1 }}>
-                              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                <Typography color="warning.main">
-                                  Board Actions Found
-                                </Typography>
-                              </AccordionSummary>
-                              <AccordionDetails>
-                                <List dense>
-                                  {requirement.details.boardActions.map((action, index) => (
-                                    <ListItem key={index}>
-                                      <ListItemIcon>
-                                        <WarningIcon color="warning" />
-                                      </ListItemIcon>
-                                      <ListItemText primary={action} />
-                                    </ListItem>
-                                  ))}
-                                </List>
-                              </AccordionDetails>
-                            </Accordion>
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          {requirement.name}
+                          {requirement.details?.boardActions && (
+                            <Chip
+                              icon={<WarningIcon />}
+                              label="Board Actions"
+                              color="warning"
+                              size="small"
+                            />
                           )}
                         </Box>
-                      )}
-                    </Box>
-                  }
-                />
-              </ListItem>
-            ))}
+                      }
+                      secondary={
+                        <Box component="div">
+                          <Typography component="div" variant="body2">
+                            {requirement.description}
+                          </Typography>
+                          {requirement.validation_message && (
+                            <Typography 
+                              component="div"
+                              variant="body2"
+                              sx={{ 
+                                color: requirement.is_valid ? 'success.main' : 'error.main',
+                                mt: 0.5 
+                              }}
+                            >
+                              {requirement.validation_message}
+                            </Typography>
+                          )}
+                          {requirement.is_valid && requirement.details && (
+                            <Box sx={{ mt: 1, pl: 2, borderLeft: '2px solid #e0e0e0' }}>
+                              {requirementDetails}
+                            </Box>
+                          )}
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                );
+              })}
           </List>
 
           <Box sx={{ mt: 3 }}>
