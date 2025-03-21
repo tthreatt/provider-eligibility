@@ -18,7 +18,8 @@ from app.schemas.eligibility import (
     Requirement,
     RequirementCreate,
     EligibilityCheck,
-    EligibilityResponse
+    EligibilityResponse,
+    RequirementBase
 )
 from app.services.provider_trust import ProviderTrustAPI
 
@@ -132,6 +133,89 @@ async def get_provider_types(db: Session = Depends(get_db)):
         print(f"Error in get_provider_types: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# Get a single provider type by ID
+@router.get("/rules/{provider_type_id}", response_model=ProviderTypeSchema)
+async def get_provider_type(
+    provider_type_id: int,
+    db: Session = Depends(get_db)
+):
+    try:
+        print(f"Fetching provider type with ID: {provider_type_id}")
+        
+        # Query the provider type with all related data
+        provider_type = db.query(ProviderTypeModel)\
+            .options(
+                joinedload(ProviderTypeModel.requirements)
+                .joinedload(ProviderRequirement.base_requirement)
+                .joinedload(BaseRequirement.validation_rule)
+            )\
+            .filter(ProviderTypeModel.id == provider_type_id)\
+            .first()
+        
+        if not provider_type:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Provider type with ID {provider_type_id} not found"
+            )
+        
+        # Format the response data to match the schema
+        response_data = {
+            "id": provider_type.id,
+            "code": provider_type.code,
+            "name": provider_type.name,
+            "requirements": []
+        }
+        
+        # Process each requirement
+        for requirement in provider_type.requirements:
+            base_req = requirement.base_requirement
+            
+            # Debug logging
+            print(f"Processing requirement: {requirement.id}")
+            if base_req:
+                print(f"Base requirement: {base_req.requirement_type}")
+            
+            req_data = {
+                "id": requirement.id,
+                "requirement_type": getattr(base_req, 'requirement_type', '') if base_req else "",
+                "name": getattr(base_req, 'name', '') if base_req else "",
+                "description": getattr(base_req, 'description', '') if base_req else "",
+                "is_required": requirement.is_required,
+                "base_requirement_id": requirement.base_requirement_id,
+                "provider_type_id": requirement.provider_type_id,
+                "validation_rules": {}
+            }
+            
+            # Handle validation rules with proper error handling
+            if requirement.override_validation_rules:
+                try:
+                    req_data["validation_rules"] = json.loads(requirement.override_validation_rules)
+                except json.JSONDecodeError as e:
+                    print(f"Error parsing override validation rules: {e}")
+                    req_data["validation_rules"] = {}
+            elif base_req and base_req.validation_rule:
+                try:
+                    req_data["validation_rules"] = json.loads(base_req.validation_rule.rules)
+                except json.JSONDecodeError as e:
+                    print(f"Error parsing base validation rules: {e}")
+                    req_data["validation_rules"] = {}
+            
+            response_data["requirements"].append(req_data)
+        
+        return response_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching provider type {provider_type_id}: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch provider type: {str(e)}"
+        )
+
 # Update provider type and requirements
 @router.put("/rules/{provider_type_id}", response_model=ProviderTypeSchema)
 async def update_provider_type(
@@ -139,49 +223,130 @@ async def update_provider_type(
     provider_type: ProviderTypeCreate,
     db: Session = Depends(get_db)
 ):
-    db_provider_type = db.query(ProviderTypeModel).filter(ProviderTypeModel.id == provider_type_id).first()
-    if not db_provider_type:
-        raise HTTPException(status_code=404, detail="Provider type not found")
+    try:
+        print(f"Received update request for provider type {provider_type_id}")
+        print(f"Request data: {provider_type.dict()}")
+        
+        db_provider_type = db.query(ProviderTypeModel).filter(ProviderTypeModel.id == provider_type_id).first()
+        if not db_provider_type:
+            raise HTTPException(status_code=404, detail="Provider type not found")
 
-    # Update provider type
-    db_provider_type.code = provider_type.code
-    db_provider_type.name = provider_type.name
+        # Update provider type basic info
+        db_provider_type.code = provider_type.code
+        db_provider_type.name = provider_type.name
 
-    # Delete existing provider requirements
-    db.query(ProviderRequirement).filter(ProviderRequirement.provider_type_id == provider_type_id).delete()
+        # Get existing provider requirements to preserve relationships
+        existing_requirements = db.query(ProviderRequirement).filter(
+            ProviderRequirement.provider_type_id == provider_type_id
+        ).all()
 
-    # Add new requirements
-    for req in provider_type.requirements:
-        # Create or get validation rule
-        validation_rule = ValidationRule(
-            rule_type=f"{req.requirement_type}_{provider_type.code}",
-            rules=json.dumps(req.validation_rules)
+        # Create a map of requirement types to existing requirements
+        existing_req_map = {
+            req.base_requirement.requirement_type: req 
+            for req in existing_requirements 
+            if req.base_requirement
+        }
+
+        # Delete existing provider requirements
+        db.query(ProviderRequirement).filter(
+            ProviderRequirement.provider_type_id == provider_type_id
+        ).delete()
+
+        new_requirements = []
+        for req in provider_type.requirements:
+            # Try to find existing validation rule
+            rule_type = f"{req.requirement_type}_{provider_type.code}"
+            existing_validation_rule = db.query(ValidationRule).filter(
+                ValidationRule.rule_type == rule_type
+            ).first()
+
+            # Update or create validation rule
+            if existing_validation_rule:
+                existing_validation_rule.rules = json.dumps(req.validation_rules)
+                validation_rule = existing_validation_rule
+            else:
+                validation_rule = ValidationRule(
+                    rule_type=rule_type,
+                    rules=json.dumps(req.validation_rules)
+                )
+                db.add(validation_rule)
+            
+            db.flush()  # Ensure validation rule has an ID
+
+            # Try to find existing base requirement
+            existing_base_req = None
+            if req.requirement_type in existing_req_map:
+                existing_base_req = existing_req_map[req.requirement_type].base_requirement
+
+            # Update or create base requirement
+            if existing_base_req:
+                existing_base_req.name = req.name or ""  # Ensure name is never None
+                existing_base_req.description = req.description or ""  # Ensure description is never None
+                existing_base_req.validation_rule_id = validation_rule.id
+                base_req = existing_base_req
+            else:
+                base_req = BaseRequirement(
+                    requirement_type=req.requirement_type,
+                    name=req.name or "",  # Ensure name is never None
+                    description=req.description or "",  # Ensure description is never None
+                    validation_rule_id=validation_rule.id
+                )
+                db.add(base_req)
+            
+            db.flush()  # Ensure base requirement has an ID
+
+            # Create new provider requirement
+            provider_req = ProviderRequirement(
+                provider_type_id=db_provider_type.id,
+                base_requirement_id=base_req.id,
+                is_required=req.is_required,
+                override_validation_rules=json.dumps(req.validation_rules) if req.validation_rules else None
+            )
+            new_requirements.append(provider_req)
+            db.add(provider_req)
+
+        db.commit()
+
+        # Format the response data manually to match the schema
+        response_data = {
+            "id": db_provider_type.id,
+            "code": db_provider_type.code,
+            "name": db_provider_type.name,
+            "requirements": []
+        }
+
+        # Fetch and format requirements
+        updated_requirements = db.query(ProviderRequirement)\
+            .filter(ProviderRequirement.provider_type_id == provider_type_id)\
+            .join(BaseRequirement)\
+            .all()
+
+        for req in updated_requirements:
+            base_req = req.base_requirement
+            req_data = {
+                "id": req.id,
+                "requirement_type": base_req.requirement_type,
+                "name": base_req.name or "",  # Ensure name is never None
+                "description": base_req.description or "",  # Ensure description is never None
+                "is_required": req.is_required,
+                "base_requirement_id": req.base_requirement_id,
+                "provider_type_id": req.provider_type_id,
+                "validation_rules": json.loads(req.override_validation_rules) if req.override_validation_rules else {}
+            }
+            response_data["requirements"].append(req_data)
+
+        return response_data
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating provider type: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update provider type: {str(e)}"
         )
-        db.add(validation_rule)
-        db.flush()
-
-        # Create or get base requirement
-        base_req = BaseRequirement(
-            requirement_type=req.requirement_type,
-            name=req.name,
-            description=req.description,
-            validation_rule_id=validation_rule.id
-        )
-        db.add(base_req)
-        db.flush()
-
-        # Create provider requirement
-        provider_req = ProviderRequirement(
-            provider_type_id=db_provider_type.id,
-            base_requirement_id=base_req.id,
-            is_required=req.is_required,
-            override_validation_rules=json.dumps(req.validation_rules) if req.validation_rules else None
-        )
-        db.add(provider_req)
-
-    db.commit()
-    db.refresh(db_provider_type)
-    return db_provider_type
 
 # Delete provider type and its requirements
 @router.delete("/rules/{provider_type_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -302,4 +467,28 @@ def check_registration_requirement(provider_data: Dict, rules: Dict) -> bool:
             license.get("status", "").lower() == "active" and
             datetime.strptime(license.get("expirationDate", ""), "%Y-%m-%d") > datetime.utcnow()):
             return True
-    return False 
+    return False
+
+# Get all base requirements
+@router.get("/base-requirements", response_model=List[RequirementBase])
+async def get_base_requirements(db: Session = Depends(get_db)):
+    try:
+        base_requirements = db.query(BaseRequirement)\
+            .options(joinedload(BaseRequirement.validation_rule))\
+            .all()
+        
+        result = []
+        for req in base_requirements:
+            req_data = {
+                "id": req.id,
+                "requirement_type": req.requirement_type,
+                "name": req.name,
+                "description": req.description,
+                "validation_rules": json.loads(req.validation_rule.rules) if req.validation_rule else {}
+            }
+            result.append(req_data)
+        
+        return result
+    except Exception as e:
+        print(f"Error in get_base_requirements: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e)) 

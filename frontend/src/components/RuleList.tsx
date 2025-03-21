@@ -5,327 +5,227 @@ import { Paper, List, ListItem, IconButton, Typography, Grid, Chip, Box, Alert, 
 import EditIcon from "@mui/icons-material/Edit"
 import DeleteIcon from "@mui/icons-material/Delete"
 import { EditRuleDialog } from "./EditRuleDialog"
-import { fetchProviderRules, API_ROUTES } from '@/config/api'
-import { BackendProviderType, Requirements } from '@/types/providerTypes'
+import { fetchProviderRules, fetchBaseRequirements, deleteProviderRule, API_ROUTES } from '@/config/api'
+import type { BaseRequirement, Requirement } from '@/types/eligibility'
 
-// Add a consistent order for requirements
+// Define the order of requirements
 const REQUIREMENT_ORDER = [
   "National Provider Identifier",
+  "Medical Degree",
   "State License",
+  "DEA Registration",
   "Board Certification",
-  "Background Check",
-  "Immunization Records",
-  "Professional References",
   "Continuing Education",
   "Malpractice Insurance",
-  "DEA Registration",
-  "Medical Degree",
-  "Residency",
-  "Work History"
+  "Background Check",
+  "Work History",
+  "Immunization Records",
+  "Professional References"
 ];
 
-// Add mapping for requirement types to UI keys
-const REQUIREMENT_TYPE_TO_UI_KEY: { [key: string]: keyof Requirements } = {
-  'identifier': 'nationalProviderId',
-  'license': 'stateLicense',
-  'certification': 'boardCertification',
-  'background_check': 'backgroundCheck',
-  'immunization': 'immunizationRecords',
-  'professional_references': 'professionalReferences',
-  'continuing_education': 'continuingEducation',
-  'insurance': 'malpracticeInsurance',
-  'registration': 'deaRegistration',
-  'degree': 'medicalDegree',
-  'residency': 'residency',
-  'work_history': 'workHistory'
-};
+// Types matching EditRuleDialog's internal types
+interface DialogProviderType {
+  id: string;
+  name: string;
+  code: string;
+  requirements: {
+    id: number;
+    requirement_type: string;
+    name: string;
+    description: string;
+    validation_rules: Record<string, any>;
+    is_required: boolean;
+    provider_type_id: number;
+  }[];
+}
+
+interface RuleListState {
+  providerTypes: DialogProviderType[];
+  baseRequirements: BaseRequirement[];
+  isLoading: boolean;
+  error: string | null;
+  successMessage: string | null;
+}
 
 export function RuleList() {
-  const [providerTypes, setProviderTypes] = useState<BackendProviderType[]>([])
-  const [editingProviderType, setEditingProviderType] = useState<BackendProviderType | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [state, setState] = useState<RuleListState>({
+    providerTypes: [],
+    baseRequirements: [],
+    isLoading: true,
+    error: null,
+    successMessage: null
+  });
+  const [editingProviderType, setEditingProviderType] = useState<DialogProviderType | null>(null);
 
-  const loadProviderTypes = async () => {
-    setIsLoading(true)
+  const loadData = async () => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const data = await fetchProviderRules()
-      // Convert API data to match frontend structure with all possible requirements
-      const convertedData = data.map((pt: any) => ({
-        id: pt.id.toString(),
-        name: pt.name,
-        requirements: {
-          nationalProviderId: pt.requirements.some((r: any) => r.requirement_type === 'identifier' && r.is_required),
-          stateLicense: pt.requirements.some((r: any) => r.requirement_type === 'license' && r.is_required),
-          boardCertification: pt.requirements.some((r: any) => r.requirement_type === 'certification' && r.is_required),
-          backgroundCheck: pt.requirements.some((r: any) => r.requirement_type === 'background_check' && r.is_required),
-          immunizationRecords: pt.requirements.some((r: any) => r.requirement_type === 'immunization' && r.is_required),
-          professionalReferences: pt.requirements.some((r: any) => r.requirement_type === 'professional_references' && r.is_required),
-          continuingEducation: pt.requirements.some((r: any) => r.requirement_type === 'continuing_education' && r.is_required),
-          malpracticeInsurance: pt.requirements.some((r: any) => r.requirement_type === 'insurance' && r.is_required),
-          deaRegistration: pt.requirements.some((r: any) => r.requirement_type === 'registration' && r.is_required),
-          medicalDegree: pt.requirements.some((r: any) => r.requirement_type === 'degree' && r.is_required),
-          residency: pt.requirements.some((r: any) => r.requirement_type === 'residency' && r.is_required),
-          workHistory: pt.requirements.some((r: any) => r.requirement_type === 'work_history' && r.is_required)
-        }
-      }))
-      setProviderTypes(convertedData)
+      const [providerTypesData, baseRequirements] = await Promise.all([
+        fetchProviderRules(),
+        fetchBaseRequirements()
+      ]);
+
+      // Convert backend provider types to match EditRuleDialog's expected format
+      const providerTypes = providerTypesData.map((pt: any) => ({
+        ...pt,
+        id: pt.id.toString(), // Convert number id to string
+        requirements: pt.requirements.map((req: any) => ({
+          ...req,
+          provider_type_id: parseInt(pt.id)
+        }))
+      }));
+
+      setState(prev => ({
+        ...prev,
+        providerTypes,
+        baseRequirements,
+        isLoading: false
+      }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-      console.error('Fetch error:', err)
-    } finally {
-      setIsLoading(false)
+      setState(prev => ({
+        ...prev,
+        error: err instanceof Error ? err.message : 'An error occurred',
+        isLoading: false
+      }));
+      console.error('Fetch error:', err);
     }
-  }
+  };
 
   useEffect(() => {
-    loadProviderTypes()
-  }, [])
+    loadData();
+  }, []);
 
-  const deleteProviderType = async (id: string) => {
+  const handleDeleteProviderType = async (id: string) => {
     try {
-      const response = await fetch(`/api/eligibility/rules/${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete provider type');
-      }
-
-      loadProviderTypes(); // Refresh the list
+      await deleteProviderRule(id);
+      setState(prev => ({
+        ...prev,
+        successMessage: 'Provider type deleted successfully'
+      }));
+      loadData(); // Refresh the list
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setState(prev => ({
+        ...prev,
+        error: err instanceof Error ? err.message : 'Failed to delete provider type'
+      }));
     }
-  }
+  };
 
-  const openEditDialog = (providerType: BackendProviderType) => {
-    setEditingProviderType(providerType)
-  }
+  const handleEditProviderType = (providerType: DialogProviderType) => {
+    setEditingProviderType(providerType);
+  };
 
-  const closeEditDialog = () => {
-    setEditingProviderType(null)
-  }
+  const handleCloseEditDialog = () => {
+    setEditingProviderType(null);
+  };
 
-  const saveEditedProviderType = async (updatedProviderType: BackendProviderType) => {
+  const handleSaveProviderType = async (updatedProviderType: DialogProviderType) => {
     try {
-      // Convert frontend structure back to API structure
-      const requestBody = {
-        code: updatedProviderType.name.toLowerCase().replace(/\s+/g, '_'),
-        name: updatedProviderType.name,
-        requirements: [
-          {
-            requirement_type: "identifier",
-            name: "National Provider Identifier",
-            description: "Valid NPI number",
-            is_required: updatedProviderType.requirements.nationalProviderId,
-            validation_rules: {
-              must_be_valid: true,
-              identifier_type: "npi"
-            },
-            base_requirement_id: 8
-          },
-          {
-            requirement_type: "license",
-            name: "State License",
-            description: "Current, unrestricted state license",
-            is_required: updatedProviderType.requirements.stateLicense,
-            validation_rules: {
-              must_be_active: true,
-              must_be_unrestricted: true
-            },
-            base_requirement_id: 1
-          },
-          {
-            requirement_type: "certification",
-            name: "Board Certification",
-            description: "Board certification",
-            is_required: updatedProviderType.requirements.boardCertification,
-            validation_rules: {
-              must_be_active: true
-            },
-            base_requirement_id: 2
-          },
-          {
-            requirement_type: "background_check",
-            name: "Background Check",
-            description: "Completed background check",
-            is_required: updatedProviderType.requirements.backgroundCheck,
-            validation_rules: {
-              must_be_active: true
-            },
-            base_requirement_id: 3
-          },
-          {
-            requirement_type: "immunization",
-            name: "Immunization Records",
-            description: "Current immunization records",
-            is_required: updatedProviderType.requirements.immunizationRecords,
-            validation_rules: {
-              must_be_active: true
-            },
-            base_requirement_id: 4
-          },
-          {
-            requirement_type: "professional_references",
-            name: "Professional References",
-            description: "Professional references",
-            is_required: updatedProviderType.requirements.professionalReferences,
-            validation_rules: {
-              must_be_active: true
-            },
-            base_requirement_id: 5
-          },
-          {
-            requirement_type: "continuing_education",
-            name: "Continuing Education",
-            description: "Required continuing education credits",
-            is_required: updatedProviderType.requirements.continuingEducation,
-            validation_rules: {
-              must_be_active: true
-            },
-            base_requirement_id: 6
-          },
-          {
-            requirement_type: "insurance",
-            name: "Malpractice Insurance",
-            description: "Current malpractice insurance",
-            is_required: updatedProviderType.requirements.malpracticeInsurance,
-            validation_rules: {
-              must_be_active: true
-            },
-            base_requirement_id: 7
-          },
-          {
-            requirement_type: "registration",
-            name: "DEA Registration",
-            description: "DEA/CDS registration",
-            is_required: updatedProviderType.requirements.deaRegistration,
-            validation_rules: {
-              must_be_active: true
-            },
-            base_requirement_id: 9
-          },
-          {
-            requirement_type: "degree",
-            name: "Medical Degree",
-            description: "Educational degree",
-            is_required: updatedProviderType.requirements.medicalDegree,
-            validation_rules: {
-              must_be_active: true
-            },
-            base_requirement_id: 11
-          },
-          {
-            requirement_type: "residency",
-            name: "Residency",
-            description: "Completed residency",
-            is_required: updatedProviderType.requirements.residency,
-            validation_rules: {
-              must_be_active: true
-            },
-            base_requirement_id: 13
-          },
-          {
-            requirement_type: "work_history",
-            name: "Work History",
-            description: "Verified work history",
-            is_required: updatedProviderType.requirements.workHistory,
-            validation_rules: {
-              must_be_active: true
-            },
-            base_requirement_id: 14
-          }
-        ]
-      };
-
-      const response = await fetch(`http://localhost:8000/api/eligibility/rules/${updatedProviderType.id}`, {
+      const response = await fetch(`${API_ROUTES.ELIGIBILITY_RULES}/${updatedProviderType.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          ...updatedProviderType,
+          id: parseInt(updatedProviderType.id) // Convert back to number for API
+        })
       });
 
       if (!response.ok) {
         throw new Error('Failed to update provider type');
       }
 
-      loadProviderTypes(); // Refresh the list
-      setSuccessMessage(`Successfully updated ${updatedProviderType.name} provider type`);
+      setState(prev => ({
+        ...prev,
+        successMessage: `Successfully updated ${updatedProviderType.name}`
+      }));
+      loadData(); // Refresh the list
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setState(prev => ({
+        ...prev,
+        error: err instanceof Error ? err.message : 'Failed to update provider type'
+      }));
     }
-  }
+  };
+
+  const clearSuccessMessage = () => {
+    setState(prev => ({ ...prev, successMessage: null }));
+  };
+
+  const clearError = () => {
+    setState(prev => ({ ...prev, error: null }));
+  };
+
+  // Helper function to get requirement status
+  const getRequirementStatus = (type: DialogProviderType, requirementName: string) => {
+    const requirement = type.requirements.find(r => r.name === requirementName);
+    return {
+      isRequired: requirement?.is_required || false,
+      requirement: requirement || state.baseRequirements.find(r => r.name === requirementName)
+    };
+  };
 
   return (
     <>
       <Paper elevation={3} sx={{ mt: 3 }}>
-        {error && (
+        {state.error && (
           <Alert 
             severity="error" 
             sx={{ m: 2 }}
+            onClose={clearError}
             action={
-              <Button color="inherit" size="small" onClick={loadProviderTypes}>
+              <Button color="inherit" size="small" onClick={loadData}>
                 Retry
               </Button>
             }
           >
-            {error}
+            {state.error}
           </Alert>
         )}
         
-        {isLoading ? (
+        {state.isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
             <CircularProgress />
           </Box>
         ) : (
           <List>
-            {providerTypes.map((type) => (
+            {state.providerTypes.map((type) => (
               <ListItem key={type.id} divider>
                 <Box sx={{ flex: 1 }}>
                   <Typography color="primary" variant="subtitle1">
                     {type.name}
                   </Typography>
                   <Grid container spacing={2} sx={{ mt: 1 }}>
-                    {Object.entries(type.requirements)
-                      .sort(([keyA], [keyB]) => {
-                        // Get the display names for sorting
-                        const displayA = keyA.replace(/([A-Z])/g, ' $1').trim();
-                        const displayB = keyB.replace(/([A-Z])/g, ' $1').trim();
-                        // Use the order array for sorting
-                        const indexA = REQUIREMENT_ORDER.indexOf(displayA);
-                        const indexB = REQUIREMENT_ORDER.indexOf(displayB);
-                        // If both items are in the order array, use their order
-                        if (indexA !== -1 && indexB !== -1) {
-                          return indexA - indexB;
-                        }
-                        // If only one item is in the order array, put it first
-                        if (indexA !== -1) {
-                          return -1;
-                        }
-                        if (indexB !== -1) {
-                          return 1;
-                        }
-                        // For items not in the order array, sort alphabetically
-                        return displayA.localeCompare(displayB);
-                      })
-                      .map(([key, value]) => (
-                        <Grid item key={key}>
+                    {REQUIREMENT_ORDER.map((reqName) => {
+                      const { isRequired, requirement } = getRequirementStatus(type, reqName);
+                      if (!requirement) return null;
+                      
+                      return (
+                        <Grid item key={requirement.requirement_type}>
                           <Chip
-                            label={`${key.replace(/([A-Z])/g, ' $1').trim()}: ${value ? "Required" : "Not Required"}`}
-                            color={value ? "success" : "default"}
+                            label={`${requirement.name}: ${isRequired ? "Required" : "Not Required"}`}
+                            color={isRequired ? "success" : "default"}
                             variant="outlined"
                           />
                         </Grid>
-                      ))}
+                      );
+                    })}
                   </Grid>
                 </Box>
                 <Box>
-                  <IconButton edge="end" aria-label="edit" onClick={() => openEditDialog(type)}>
+                  <IconButton 
+                    edge="end" 
+                    aria-label="edit" 
+                    onClick={() => handleEditProviderType(type)}
+                  >
                     <EditIcon />
                   </IconButton>
-                  <IconButton edge="end" aria-label="delete" onClick={() => deleteProviderType(type.id)}>
+                  <IconButton 
+                    edge="end" 
+                    aria-label="delete" 
+                    onClick={() => handleDeleteProviderType(type.id)}
+                  >
                     <DeleteIcon />
                   </IconButton>
                 </Box>
@@ -336,17 +236,17 @@ export function RuleList() {
       </Paper>
 
       <Snackbar
-        open={!!successMessage}
+        open={!!state.successMessage}
         autoHideDuration={6000}
-        onClose={() => setSuccessMessage(null)}
+        onClose={clearSuccessMessage}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
         <Alert 
-          onClose={() => setSuccessMessage(null)} 
+          onClose={clearSuccessMessage} 
           severity="success" 
           sx={{ width: '100%' }}
         >
-          {successMessage}
+          {state.successMessage}
         </Alert>
       </Snackbar>
 
@@ -354,11 +254,11 @@ export function RuleList() {
         <EditRuleDialog
           providerType={editingProviderType}
           isOpen={true}
-          onClose={closeEditDialog}
-          onSave={saveEditedProviderType}
+          onClose={handleCloseEditDialog}
+          onSave={handleSaveProviderType}
         />
       )}
     </>
-  )
+  );
 }
 

@@ -8,89 +8,95 @@ from app.models.eligibility_rules import (
 import json
 
 def seed_validation_rules(db: Session):
-    common_rules = [
+    validation_rules_data = [
         {
             "rule_type": "state_license",
             "rules": {
-                        "must_be_active": True,
-                        "must_be_unrestricted": True,
-                        "license_type": "state_license"
-                    }
-                },
-                {
+                "must_be_active": True,
+                "must_be_unrestricted": True
+            }
+        },
+        {
             "rule_type": "cpr_certification",
             "rules": {
-                        "must_be_active": True,
-                "certification_type": "cpr"
+                "must_be_current": True,
+                "expiration_window_months": 24
             }
         },
         {
             "rule_type": "background_check",
             "rules": {
-                        "must_be_completed": True,
-                        "check_type": "background"
-                    }
-                },
-                {
+                "must_be_completed": True,
+                "expiration_window_months": 12
+            }
+        },
+        {
             "rule_type": "immunization",
             "rules": {
-                        "must_be_current": True,
-                        "record_type": "immunization"
-                    }
-                },
-                {
+                "must_be_current": True,
+                "required_vaccines": ["COVID-19", "Flu", "MMR", "Tdap"]
+            }
+        },
+        {
             "rule_type": "professional_references",
             "rules": {
-                        "must_be_verified": True,
-                        "minimum_references": 3
-                    }
+                "minimum_count": 3,
+                "must_be_verified": True
+            }
         },
         {
             "rule_type": "continuing_education",
             "rules": {
-                        "must_be_current": True,
-                        "education_type": "continuing"
-                    }
-                },
-                {
+                "must_be_completed": True,
+                "minimum_hours": 40
+            }
+        },
+        {
             "rule_type": "malpractice_insurance",
             "rules": {
-                        "must_be_active": True,
-                        "insurance_type": "malpractice"
-                    }
-                },
-                {
+                "must_be_active": True,
+                "minimum_coverage": 1000000
+            }
+        },
+        {
             "rule_type": "npi",
             "rules": {
-                        "must_be_valid": True,
-                        "identifier_type": "npi"
-                    }
-                },
-                {
+                "must_be_valid": True,
+                "must_be_active": True
+            }
+        },
+        {
             "rule_type": "dea_registration",
             "rules": {
-                        "must_be_active": True,
-                "registration_type": "controlled_substance_registration"
+                "must_be_active": True,
+                "must_be_unrestricted": True
             }
         },
         {
             "rule_type": "board_certification",
             "rules": {
-                        "must_be_active": True,
-                        "certification_type": "board_certification"
-                    }
-                },
-                {
+                "must_be_current": True,
+                "must_be_primary_specialty": True
+            }
+        },
+        {
             "rule_type": "degree_validation",
             "rules": {
-                        "must_be_active": True,
+                "must_be_verified": True,
                 "must_be_accredited": True
+            }
+        },
+        {
+            "rule_type": "work_history",
+            "rules": {
+                "must_be_verified": True,
+                "verification_period_years": 5
             }
         }
     ]
     
     validation_rules = {}
-    for rule in common_rules:
+    for rule in validation_rules_data:
         # Convert rules dict to JSON string
         rule["rules"] = json.dumps(rule["rules"])
         validation_rule = ValidationRule(**rule)
@@ -167,7 +173,13 @@ def seed_base_requirements(db: Session, validation_rules):
             "name": "Medical Degree",
             "description": "Medical degree from accredited institution",
             "validation_rule_id": validation_rules["degree_validation"]
-        }
+        },
+                {
+                    "requirement_type": "work_history",
+                    "name": "Work History",
+                    "description": "Verified work history",
+                    "validation_rule_id": validation_rules["work_history"]
+                }
     ]
     
     base_requirements = {}

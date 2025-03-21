@@ -1,168 +1,47 @@
 import { NextResponse } from 'next/server';
 import { API_ROUTES } from '@/config/api';
-import { requirementMetadata } from '@/utils/requirementMappings';
-import type { BackendProviderType, Requirement } from '@/types/providerTypes';
+import type { BackendProviderType, BackendRequirement } from '@/types/providerTypes';
+import { generateProviderTypeCode } from '@/types/providerTypes';
 
-// Transform frontend data to backend format
-async function transformToBackendFormat(frontendData: BackendProviderType, existingTypeId: string) {
-  // First, fetch all provider types from backend
-  const response = await fetch(`${API_ROUTES.ELIGIBILITY_RULES}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  // Get response as text first
-  const responseText = await response.text();
-  console.log('Raw GET response in transform:', responseText);
-
-  // Try to parse as JSON
-  let allTypes;
-  try {
-    allTypes = responseText ? JSON.parse(responseText) : null;
-  } catch (e) {
-    console.error('Failed to parse response:', responseText);
-    throw new Error('Invalid backend response');
-  }
-
-  if (!response.ok) {
-    throw new Error(allTypes?.detail || 'Failed to fetch provider types');
-  }
-
-  // Find the specific provider type
-  const existingType = allTypes.find((type: any) => type.id.toString() === existingTypeId);
-  
-  if (!existingType) {
-    throw new Error(`No provider type found with id ${existingTypeId}`);
-  }
-
-  console.log('Found existing type:', existingType);
-
-  // Generate code from name
-  const code = frontendData.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-
-  // Create a map of requirement types to existing requirements
-  const existingRequirements = new Map(
-    existingType.requirements.map((req: Requirement) => [req.requirement_type, req])
+// Type guard for BackendRequirement
+function isBackendRequirement(value: any): value is BackendRequirement {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof value.requirement_type === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.description === 'string' &&
+    typeof value.is_required === 'boolean' &&
+    typeof value.validation_rules === 'object' &&
+    typeof value.base_requirement_id === 'number'
   );
+}
 
-  // Convert frontend boolean flags to backend requirement objects
-  const requirements = Object.entries(frontendData.requirements).map(([key, isRequired]) => {
-    const metadata = requirementMetadata[key];
-    if (!metadata) {
-      throw new Error(`Missing metadata for requirement: ${key}`);
-    }
+// Type guard for array of BackendRequirement
+function isBackendRequirementArray(value: any): value is BackendRequirement[] {
+  return Array.isArray(value) && value.every(isBackendRequirement);
+}
 
-    // Find existing requirement
-    const existingReq = existingRequirements.get(metadata.requirement_type) as Requirement | undefined;
-    
-    return {
-      requirement_type: metadata.requirement_type,
-      name: metadata.name,
-      description: metadata.description,
-      is_required: isRequired,
-      validation_rules: metadata.validation_rules,
-      // Preserve existing IDs if available
-      base_requirement_id: existingReq?.base_requirement_id,
-      provider_type_id: parseInt(existingTypeId)
-    };
-  });
+// Validation function for provider type data
+function validateProviderTypeData(data: any): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  if (!data.name) {
+    errors.push('Name is required');
+  }
+
+  if (!data.code) {
+    errors.push('Code is required');
+  }
+
+  if (!data.requirements || !Array.isArray(data.requirements) || data.requirements.length === 0) {
+    errors.push('At least one requirement is required');
+  }
 
   return {
-    id: parseInt(existingTypeId),
-    code,
-    name: frontendData.name,
-    requirements
+    isValid: errors.length === 0,
+    errors
   };
-}
-
-// Validate transformed data
-function validateTransformedData(data: any) {
-  if (!data.code || typeof data.code !== 'string') {
-    throw new Error('Invalid code field');
-  }
-  if (!data.name || typeof data.name !== 'string') {
-    throw new Error('Invalid name field');
-  }
-  if (!Array.isArray(data.requirements)) {
-    throw new Error('Requirements must be an array');
-  }
-  
-  data.requirements.forEach((req: any, index: number) => {
-    if (!req.requirement_type || typeof req.requirement_type !== 'string') {
-      throw new Error(`Invalid requirement_type at index ${index}`);
-    }
-    if (!req.name || typeof req.name !== 'string') {
-      throw new Error(`Invalid requirement name at index ${index}`);
-    }
-    if (!req.description || typeof req.description !== 'string') {
-      throw new Error(`Invalid requirement description at index ${index}`);
-    }
-    if (typeof req.is_required !== 'boolean') {
-      throw new Error(`Invalid is_required at index ${index}`);
-    }
-    if (!req.validation_rules || typeof req.validation_rules !== 'object') {
-      throw new Error(`Invalid validation_rules at index ${index}`);
-    }
-  });
-}
-
-// Add GET handler for single provider type
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    // Fetch all provider types from backend
-    const response = await fetch(`${API_ROUTES.ELIGIBILITY_RULES}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    // Get response as text first
-    const responseText = await response.text();
-    console.log('Raw GET response:', responseText);
-
-    // Try to parse as JSON
-    let allTypes;
-    try {
-      allTypes = responseText ? JSON.parse(responseText) : null;
-    } catch (e) {
-      console.error('Failed to parse response:', responseText);
-      return NextResponse.json(
-        { error: 'Invalid backend response', details: responseText },
-        { status: 500 }
-      );
-    }
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: 'Failed to fetch provider types', details: allTypes?.detail || 'Unknown error' },
-        { status: response.status }
-      );
-    }
-
-    // Find the specific provider type
-    const providerType = allTypes.find((type: any) => type.id.toString() === params.id);
-    
-    if (!providerType) {
-      return NextResponse.json(
-        { error: 'Provider type not found', details: `No provider type found with id ${params.id}` },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(providerType);
-  } catch (error) {
-    console.error('Route error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch provider type', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
-  }
 }
 
 export async function PUT(
@@ -176,9 +55,51 @@ export async function PUT(
       data: JSON.stringify(data, null, 2)
     });
 
-    // Transform the data
-    const transformedData = await transformToBackendFormat(data, params.id);
-    console.log('Transformed data being sent to backend:', JSON.stringify(transformedData, null, 2));
+    // Convert requirements to array format if it's not already
+    const requirements = Array.isArray(data.requirements) 
+      ? data.requirements 
+      : Object.entries(data.requirements).map(([type, isRequired]) => ({
+          requirement_type: type,
+          name: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          description: `${type} requirement`,
+          is_required: isRequired,
+          validation_rules: {},
+          base_requirement_id: 1, // This should be mapped correctly based on requirement type
+          provider_type_id: parseInt(params.id)
+        })) as BackendRequirement[];
+
+    // Ensure code exists
+    const providerTypeData = {
+      ...data,
+      id: params.id,
+      code: data.code || generateProviderTypeCode(data.name),
+      requirements
+    } as BackendProviderType;
+
+    // Validate the data
+    const validation = validateProviderTypeData(providerTypeData);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        { 
+          error: 'Validation failed',
+          details: validation.errors
+        },
+        { status: 422 }
+      );
+    }
+
+    // Update provider_type_id for each requirement
+    const updatedRequirements = requirements.map((req: BackendRequirement) => ({
+      ...req,
+      provider_type_id: parseInt(params.id)
+    }));
+
+    const finalData: BackendProviderType = {
+      ...providerTypeData,
+      requirements: updatedRequirements
+    };
+
+    console.log('Data being sent to backend:', JSON.stringify(finalData, null, 2));
 
     // Send to backend
     const response = await fetch(`${API_ROUTES.ELIGIBILITY_RULES}/${params.id}`, {
@@ -186,23 +107,19 @@ export async function PUT(
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(transformedData),
+      body: JSON.stringify(finalData),
     });
 
     // Get response as text first
     const responseText = await response.text();
     console.log('Raw backend response:', responseText);
-    console.log('Response status:', response.status);
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
     // Try to parse as JSON
     let responseData;
     try {
       responseData = responseText ? JSON.parse(responseText) : null;
-      console.log('Parsed response data:', responseData);
     } catch (e) {
       console.error('Failed to parse backend response:', responseText);
-      console.error('Parse error:', e);
       return NextResponse.json(
         { error: 'Invalid backend response', details: responseText },
         { status: 500 }
@@ -210,11 +127,24 @@ export async function PUT(
     }
 
     if (!response.ok) {
+      // Handle Pydantic validation errors
+      if (response.status === 422 && Array.isArray(responseData?.details)) {
+        const formattedErrors = responseData.details.map((error: any) => {
+          const field = error.loc.slice(1).join('.');
+          return `${field}: ${error.msg}`;
+        });
+        return NextResponse.json(
+          { 
+            error: 'Validation failed',
+            details: formattedErrors
+          },
+          { status: 422 }
+        );
+      }
+
       console.error('Backend error:', {
         status: response.status,
-        statusText: response.statusText,
-        data: responseData,
-        text: responseText
+        data: responseData
       });
       return NextResponse.json(
         { 
@@ -228,10 +158,9 @@ export async function PUT(
     return NextResponse.json(responseData);
   } catch (error) {
     console.error('Route error:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
       { 
-        error: 'Failed to update provider type',
+        error: 'Failed to process request',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

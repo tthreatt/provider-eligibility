@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Paper,
   Typography,
@@ -16,8 +15,26 @@ import {
   Button,
   Box,
   Alert,
+  CircularProgress,
 } from "@mui/material"
-import type { ProviderType } from "@/types/defaultProviderTypes"
+import type { BaseRequirement, FrontendRequirements } from "@/types/providerTypes"
+import { requirementTypeToUIKey } from "@/types/providerTypes"
+import { getBaseRequirements, createProviderType } from "@/services/eligibilityApi"
+
+// Define the order of requirements
+const REQUIREMENT_ORDER = [
+  "National Provider Identifier",
+  "Medical Degree",
+  "State License",
+  "DEA Registration",
+  "Board Certification",
+  "Continuing Education",
+  "Malpractice Insurance",
+  "Background Check",
+  "Work History",
+  "Immunization Records",
+  "Professional References"
+];
 
 const providerTypeOptions = [
   "Allopathic & Osteopathic Physicians",
@@ -32,157 +49,135 @@ const providerTypeOptions = [
   "Physician Assistants & Advanced Practice Nursing Providers",
   "Podiatric Medicine & Surgery Service Providers",
   "Speech, Language and Hearing Service Providers",
-]
+];
+
+interface FormState {
+  providerTypeName: string;
+  baseRequirements: BaseRequirement[];
+  selectedRequirements: Record<number, boolean>;
+  error: string | null;
+  success: boolean;
+  loading: boolean;
+}
 
 export function AddRuleForm({ onRuleAdded }: { onRuleAdded: () => void }) {
-  const [providerTypeName, setProviderTypeName] = useState("")
-  const [stateLicense, setStateLicense] = useState(false)
-  const [deaCds, setDeaCds] = useState(false)
-  const [boardCertification, setBoardCertification] = useState(false)
-  const [degree, setDegree] = useState(false)
-  const [residency, setResidency] = useState(false)
-  const [malpracticeInsurance, setMalpracticeInsurance] = useState(false)
-  const [backgroundCheck, setBackgroundCheck] = useState(false)
-  const [workHistory, setWorkHistory] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+  const [state, setState] = useState<FormState>({
+    providerTypeName: "",
+    baseRequirements: [],
+    selectedRequirements: {},
+    error: null,
+    success: false,
+    loading: false
+  });
+
+  useEffect(() => {
+    const fetchBaseRequirements = async () => {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+      try {
+        const requirements = await getBaseRequirements();
+        const initialSelectedState = requirements.reduce((acc, req) => {
+          acc[req.id] = false;
+          return acc;
+        }, {} as Record<number, boolean>);
+
+        setState(prev => ({
+          ...prev,
+          baseRequirements: requirements,
+          selectedRequirements: initialSelectedState,
+          loading: false
+        }));
+      } catch (err) {
+        setState(prev => ({
+          ...prev,
+          error: 'Failed to fetch requirements',
+          loading: false
+        }));
+      }
+    };
+
+    fetchBaseRequirements();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setSuccess(false)
+    e.preventDefault();
+    setState(prev => ({ ...prev, error: null, success: false, loading: true }));
 
-    if (providerTypeName) {
-      try {
-        const response = await fetch('/api/eligibility/rules', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            code: providerTypeName.toLowerCase().replace(/\s+/g, '_'),
-            name: providerTypeName,
-            requirements: [
-              {
-                requirement_type: "license",
-                name: "State License",
-                description: "Current, unrestricted state license",
-                is_required: stateLicense,
-                validation_rules: {
-                  must_be_active: true,
-                  license_type: "state_license"
-                }
-              },
-              {
-                requirement_type: "registration",
-                name: "DEA Registration",
-                description: "DEA/CDS registration",
-                is_required: deaCds,
-                validation_rules: {
-                  must_be_active: true,
-                  registration_type: "controlled_substance_registration"
-                }
-              },
-              {
-                requirement_type: "certification",
-                name: "Board Certification",
-                description: "Board certification",
-                is_required: boardCertification,
-                validation_rules: {
-                  must_be_active: true,
-                  certification_type: "board_certification"
-                }
-              },
-              {
-                requirement_type: "degree",
-                name: "Medical Degree",
-                description: "Appropriate degree from an accredited institution",
-                is_required: degree,
-                validation_rules: {
-                  must_be_active: true,
-                  degree_type: "medical_degree"
-                }
-              },
-              {
-                requirement_type: "residency",
-                name: "Residency",
-                description: "Completion of residency program",
-                is_required: residency,
-                validation_rules: {
-                  must_be_completed: true
-                }
-              },
-              {
-                requirement_type: "insurance",
-                name: "Malpractice Insurance",
-                description: "Current malpractice insurance coverage",
-                is_required: malpracticeInsurance,
-                validation_rules: {
-                  must_be_active: true
-                }
-              },
-              {
-                requirement_type: "background_check",
-                name: "Background Check",
-                description: "Background check verification",
-                is_required: backgroundCheck,
-                validation_rules: {
-                  must_be_completed: true
-                }
-              },
-              {
-                requirement_type: "work_history",
-                name: "Work History",
-                description: "Verification of work history",
-                is_required: workHistory,
-                validation_rules: {
-                  must_be_verified: true
-                }
-              }
-            ]
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to create provider type');
-        }
-
-        setSuccess(true);
-        onRuleAdded(); // Refresh the list
-        
-        // Reset form
-        setProviderTypeName("");
-        setStateLicense(false);
-        setDeaCds(false);
-        setBoardCertification(false);
-        setDegree(false);
-        setResidency(false);
-        setMalpracticeInsurance(false);
-        setBackgroundCheck(false);
-        setWorkHistory(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      }
+    if (!state.providerTypeName) {
+      setState(prev => ({
+        ...prev,
+        error: 'Please select a provider type',
+        loading: false
+      }));
+      return;
     }
+
+    try {
+      // Convert selected requirements to FrontendRequirements format
+      const requirements = state.baseRequirements.reduce((acc, req) => {
+        const uiKey = requirementTypeToUIKey[req.requirement_type];
+        if (uiKey) {
+          acc[uiKey] = state.selectedRequirements[req.id] || false;
+        }
+        return acc;
+      }, {} as FrontendRequirements);
+
+      await createProviderType({
+        name: state.providerTypeName,
+        code: state.providerTypeName.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+        requirements
+      });
+
+      setState(prev => ({
+        ...prev,
+        providerTypeName: "",
+        selectedRequirements: prev.baseRequirements.reduce((acc, req) => {
+          acc[req.id] = false;
+          return acc;
+        }, {} as Record<number, boolean>),
+        success: true,
+        loading: false
+      }));
+
+      onRuleAdded();
+    } catch (err) {
+      setState(prev => ({
+        ...prev,
+        error: err instanceof Error ? err.message : 'An error occurred',
+        loading: false
+      }));
+    }
+  };
+
+  const getRequirementByName = (name: string): BaseRequirement | undefined => {
+    return state.baseRequirements.find(req => req.name === name);
+  };
+
+  if (state.loading && state.baseRequirements.length === 0) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
     <Paper elevation={3} sx={{ p: 4, mb: 4 }}>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>Provider type added successfully!</Alert>}
+      {state.error && <Alert severity="error" sx={{ mb: 2 }}>{state.error}</Alert>}
+      {state.success && <Alert severity="success" sx={{ mb: 2 }}>Provider type added successfully!</Alert>}
       
       <Typography variant="h6" gutterBottom>
         Add New Provider Type
       </Typography>
+
       <form onSubmit={handleSubmit}>
         <FormControl fullWidth sx={{ mb: 3 }}>
           <InputLabel id="provider-type-label">Provider Type Name</InputLabel>
           <Select
             labelId="provider-type-label"
             id="provider-type"
-            value={providerTypeName}
+            value={state.providerTypeName}
             label="Provider Type Name"
-            onChange={(e) => setProviderTypeName(e.target.value)}
+            onChange={(e) => setState(prev => ({ ...prev, providerTypeName: e.target.value }))}
             required
           >
             <MenuItem value="">
@@ -199,50 +194,52 @@ export function AddRuleForm({ onRuleAdded }: { onRuleAdded: () => void }) {
         <Typography variant="subtitle2" gutterBottom>
           Requirements
         </Typography>
-        <FormGroup row sx={{ mb: 3 }}>
-          <FormControlLabel
-            control={<Checkbox checked={stateLicense} onChange={(e) => setStateLicense(e.target.checked)} />}
-            label="State License"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={deaCds} onChange={(e) => setDeaCds(e.target.checked)} />}
-            label="DEA/CDS"
-          />
-          <FormControlLabel
-            control={
-              <Checkbox checked={boardCertification} onChange={(e) => setBoardCertification(e.target.checked)} />
-            }
-            label="Board Certification"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={degree} onChange={(e) => setDegree(e.target.checked)} />}
-            label="Degree Required"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={residency} onChange={(e) => setResidency(e.target.checked)} />}
-            label="Residency Required"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={malpracticeInsurance} onChange={(e) => setMalpracticeInsurance(e.target.checked)} />}
-            label="Malpractice Insurance Required"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={backgroundCheck} onChange={(e) => setBackgroundCheck(e.target.checked)} />}
-            label="Background Check Required"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={workHistory} onChange={(e) => setWorkHistory(e.target.checked)} />}
-            label="Work History Required"
-          />
+        <FormGroup sx={{ mb: 3 }}>
+          {REQUIREMENT_ORDER.map(reqName => {
+            const requirement = getRequirementByName(reqName);
+            if (!requirement) return null;
+
+            return (
+              <FormControlLabel
+                key={requirement.id}
+                control={
+                  <Checkbox
+                    checked={state.selectedRequirements[requirement.id] || false}
+                    onChange={(e) => setState(prev => ({
+                      ...prev,
+                      selectedRequirements: {
+                        ...prev.selectedRequirements,
+                        [requirement.id]: e.target.checked
+                      }
+                    }))}
+                    disabled={state.loading}
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography variant="body1">{requirement.name}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {requirement.description}
+                    </Typography>
+                  </Box>
+                }
+              />
+            );
+          })}
         </FormGroup>
 
         <Box>
-          <Button type="submit" variant="contained" sx={{ fontWeight: 700 }}>
+          <Button 
+            type="submit" 
+            variant="contained" 
+            sx={{ fontWeight: 700 }}
+            disabled={!state.providerTypeName || state.loading}
+          >
             Add Provider Type
           </Button>
         </Box>
       </form>
     </Paper>
-  )
+  );
 }
 
