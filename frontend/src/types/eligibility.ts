@@ -72,6 +72,14 @@ export interface Requirement {
     number?: string;
     expirationDate?: string;
     status?: string;
+    boardActions?: string[];
+    multipleDetails?: Array<{
+      issuer?: string;
+      number?: string;
+      status?: string;
+      expirationDate?: string;
+      boardActions?: string[];
+    }>;
   };
   base_requirement_id: number;
   provider_type_id: number;

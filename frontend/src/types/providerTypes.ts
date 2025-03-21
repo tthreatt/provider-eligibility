@@ -51,6 +51,7 @@ export interface FrontendRequirements {
   medicalDegree: boolean;
   residency: boolean;
   workHistory: boolean;
+  cprCertification: boolean;
   [key: string]: boolean;
 }
 
@@ -75,6 +76,7 @@ export const requirementTypeToUIKey: { [key: string]: keyof FrontendRequirements
   'identifier': 'nationalProviderId',
   'license': 'stateLicense',
   'certification': 'boardCertification',
+  'cpr_certification': 'cprCertification',
   'background_check': 'backgroundCheck',
   'immunization': 'immunizationRecords',
   'professional_references': 'professionalReferences',

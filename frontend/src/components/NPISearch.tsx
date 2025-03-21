@@ -121,12 +121,30 @@ interface DetailType {
   boardActions?: string[];
 }
 
+// Add type guard for license categories
+const isValidLicenseCategory = (category: string | undefined): boolean => {
+  return category === 'board_certification' || 
+         category === 'certification' || 
+         category === 'state_license' || 
+         category === 'controlled_substance_registration';
+};
+
+// Add helper to check if a license is active
+const isActiveLicense = (license: License): boolean => {
+  return license.status?.toLowerCase() === 'active';
+};
+
 export function NPISearch({ loading = false }: NPISearchProps) {
   const [npi, setNpi] = useState("")
   const [searchResult, setSearchResult] = useState<ProcessedResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const { getToken } = useAuth()
+
+  // Add NPI validation function
+  const isValidNPI = (npi: string): boolean => {
+    return /^\d{10}$/.test(npi);
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,32 +201,40 @@ export function NPISearch({ loading = false }: NPISearchProps) {
           let validationMessage = '';
           let details: Requirement['details'] = undefined;
 
-          // Find matching license based on requirement type
+          // Update the license filtering logic
           const matchingLicenses = providerData.rawApiResponse['Licenses']?.filter((license: License) => {
+            // First ensure we have a valid category
+            if (!isValidLicenseCategory(license.category)) {
+              return false;
+            }
+
             switch (rule.requirement_type) {
               case 'registration':
                 return license.category === 'controlled_substance_registration';
               case 'license':
                 return license.category === 'state_license';
               case 'certification':
-                // Match board certifications (ABMS and other board certifications)
-                return (
-                  (license.category === 'board_certification' || license.issuer?.includes('ABMS')) &&
-                  license.type?.toLowerCase().includes('specialty')
-                );
-              case 'cpr_certification':
-                // Only match actual CPR certifications
-                return license.type?.toLowerCase().includes('cpr') && !license.type?.toLowerCase().includes('specialty');
+                // Handle both board and CPR certifications
+                if (rule.name === 'CPR Certification') {
+                  // For CPR, look for explicit CPR certifications
+                  return (
+                    license.category === 'certification' &&
+                    license.type?.toLowerCase().includes('cpr')
+                  );
+                } else if (rule.name === 'Board Certification') {
+                  // For Board certification, strictly match board_certification category
+                  return license.category === 'board_certification';
+                }
+                return false;
               default:
                 return false;
             }
           }) || [];
 
           // Filter to only show active licenses
-          const activeLicenses = matchingLicenses.filter(
-            (license: License) => license.status?.toLowerCase() === 'active'
-          );
+          const activeLicenses = matchingLicenses.filter(isActiveLicense);
 
+          // Update validation logic
           switch (rule.requirement_type) {
             case 'identifier':
               isValid = Boolean(providerData.rawApiResponse['NPI Validation']?.npi);
@@ -219,10 +245,31 @@ export function NPISearch({ loading = false }: NPISearchProps) {
                 };
               }
               break;
+            case 'certification':
+              isValid = activeLicenses.length > 0;
+              validationMessage = isValid 
+                ? `Valid ${rule.name} found`
+                : `No valid ${rule.name} found`;
+              
+              if (activeLicenses.length > 0) {
+                // Only include active licenses in the details
+                const licenseDetails = activeLicenses.map((license: License) => ({
+                  issuer: license.issuer || license.state,
+                  number: license.number,
+                  status: license.status,
+                  expirationDate: license.expirationDate,
+                  boardActions: license.hasBoardAction 
+                    ? license.boardActionData?.boardActionTexts 
+                    : undefined
+                }));
+                
+                details = {
+                  multipleDetails: licenseDetails
+                };
+              }
+              break;
             case 'license':
             case 'registration':
-            case 'certification':
-            case 'cpr_certification':
               isValid = activeLicenses.length > 0;
               validationMessage = isValid 
                 ? `Valid ${rule.name} found`
@@ -355,7 +402,7 @@ export function NPISearch({ loading = false }: NPISearchProps) {
           <Button
             type="submit"
             variant="contained"
-            disabled={loading || !npi}
+            disabled={loading || !npi || !isValidNPI(npi)}
             sx={{
               minWidth: { xs: '48px', sm: '150px' },
               whiteSpace: 'nowrap',
