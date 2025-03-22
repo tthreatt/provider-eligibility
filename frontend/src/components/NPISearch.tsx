@@ -5,31 +5,58 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@clerk/nextjs"
 import {
   Paper,
-  TextField,
-  Button,
   Typography,
   Alert,
   AlertTitle,
   Box,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  CircularProgress,
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Chip,
-  Divider,
 } from "@mui/material"
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"
 import CancelIcon from "@mui/icons-material/Cancel"
-import CheckIcon from "@mui/icons-material/Check"
-import CloseIcon from "@mui/icons-material/Close"
-import WarningIcon from "@mui/icons-material/Warning"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import SearchIcon from "@mui/icons-material/Search"
-import { API_ROUTES } from '../config/api';
+import { API_ROUTES } from '../config/api'
+import { SearchForm } from './SearchForm'
+import { RequirementList } from './RequirementList'
+import { ProcessedEligibility } from '../types/eligibility'
+import { processRequirementDetails, cleanRawApiResponse, validateRequirement } from '../utils/eligibilityProcessor'
+
+// Provider service functions
+const fetchProviderData = async (npi: string, token: string | null) => {
+  if (!token) throw new Error('Authentication token is required');
+  
+  const response = await fetch('http://localhost:8000/api/fetch-provider-data', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ npi }),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch provider data');
+  }
+  
+  return response.json();
+};
+
+const fetchEligibilityRules = async (token: string | null) => {
+  if (!token) throw new Error('Authentication token is required');
+  
+  const response = await fetch(API_ROUTES.ELIGIBILITY_RULES, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch eligibility rules');
+  }
+  
+  return response.json();
+};
 
 const REQUIREMENT_ORDER = [
   "National Provider Identifier",
@@ -45,106 +72,16 @@ const REQUIREMENT_ORDER = [
   "Professional References"
 ];
 
-// Define interfaces for type safety
-interface License {
-  category: string;
-  number?: string;
-  state?: string;
-  status?: string;
-  type?: string;
-  issuer?: string;
-  expirationDate?: string;
-  hasBoardAction?: boolean;
-  boardActionDetails?: string;
-  boardActionData?: {
-    boardActionTexts?: string[];
-  };
-}
-
-interface NPIValidation {
-  providerName: string;
-  npi: string;
-  updateDate: string;
-  providerType?: string;
-  licenses?: License[];
-  entityType?: string;
-  enumerationDate?: string;
-}
-
-interface Requirement {
-  id: number;
-  requirement_type: string;
-  name: string;
-  description: string;
-  is_required: boolean;
-  is_valid: boolean;
-  validation_message?: string;
-  validation_rules: Record<string, any>;
-  details?: {
-    issuer?: string;
-    number?: string;
-    expirationDate?: string;
-    status?: string;
-    boardActions?: string[];
-    multipleDetails?: Array<{
-      issuer?: string;
-      number?: string;
-      status?: string;
-      expirationDate?: string;
-      boardActions?: string[];
-    }>;
-  };
-}
-
-interface ProcessedResult {
-  isEligible: boolean;
-  requirements: Requirement[];
-  rawValidation: {
-    npiDetails: NPIValidation;
-  };
-  providerType?: string;
-}
-
 interface NPISearchProps {
   loading?: boolean;
 }
 
-interface BoardAction {
-  text: string;
-}
-
-interface DetailType {
-  issuer?: string;
-  number?: string;
-  status?: string;
-  expirationDate?: string;
-  boardActions?: string[];
-}
-
-// Add type guard for license categories
-const isValidLicenseCategory = (category: string | undefined): boolean => {
-  return category === 'board_certification' || 
-         category === 'certification' || 
-         category === 'state_license' || 
-         category === 'controlled_substance_registration';
-};
-
-// Add helper to check if a license is active
-const isActiveLicense = (license: License): boolean => {
-  return license.status?.toLowerCase() === 'active';
-};
-
 export function NPISearch({ loading = false }: NPISearchProps) {
   const [npi, setNpi] = useState("")
-  const [searchResult, setSearchResult] = useState<ProcessedResult | null>(null)
+  const [searchResult, setSearchResult] = useState<ProcessedEligibility | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const { getToken } = useAuth()
-
-  // Add NPI validation function
-  const isValidNPI = (npi: string): boolean => {
-    return /^\d{10}$/.test(npi);
-  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,38 +91,18 @@ export function NPISearch({ loading = false }: NPISearchProps) {
     
     try {
       const token = await getToken();
+      const [rawProviderData, eligibilityRules] = await Promise.all([
+        fetchProviderData(npi, token),
+        fetchEligibilityRules(token)
+      ]);
+
+      // Clean the raw API response first
+      const providerData = {
+        ...rawProviderData,
+        rawApiResponse: cleanRawApiResponse(rawProviderData.rawApiResponse)
+      };
       
-      // First get provider data
-      const providerResponse = await fetch('http://localhost:8000/api/fetch-provider-data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ npi }),
-      });
-
-      if (!providerResponse.ok) {
-        throw new Error('Failed to fetch provider data');
-      }
-
-      const providerData = await providerResponse.json();
-      
-      // Then get eligibility rules
-      const rulesResponse = await fetch(`${API_ROUTES.ELIGIBILITY_RULES}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!rulesResponse.ok) {
-        throw new Error('Failed to fetch eligibility rules');
-      }
-
-      const allRules = await rulesResponse.json();
-      
-      // Find matching provider type rules using the provider type from requirements
-      const providerTypeRules = allRules.find((rule: any) => 
+      const providerTypeRules = eligibilityRules.find((rule: any) => 
         rule.name === providerData.requirements.providerType
       );
 
@@ -194,126 +111,13 @@ export function NPISearch({ loading = false }: NPISearchProps) {
       }
 
       // Transform the backend response to match our frontend structure
-      const processedResult: ProcessedResult = {
-        isEligible: true, // Will be updated based on requirements
+      const processedResult: ProcessedEligibility = {
+        isEligible: true,
         requirements: providerTypeRules.requirements.map((rule: any) => {
-          let isValid = false;
-          let validationMessage = '';
-          let details: Requirement['details'] = undefined;
-
-          // Update the license filtering logic
-          const matchingLicenses = providerData.rawApiResponse['Licenses']?.filter((license: License) => {
-            // First ensure we have a valid category
-            if (!isValidLicenseCategory(license.category)) {
-              return false;
-            }
-
-            switch (rule.requirement_type) {
-              case 'registration':
-                return license.category === 'controlled_substance_registration';
-              case 'license':
-                return license.category === 'state_license';
-              case 'certification':
-                // Handle both board and CPR certifications
-                if (rule.name === 'CPR Certification') {
-                  // For CPR, look for explicit CPR certifications
-                  return (
-                    license.category === 'certification' &&
-                    license.type?.toLowerCase().includes('cpr')
-                  );
-                } else if (rule.name === 'Board Certification') {
-                  // For Board certification, strictly match board_certification category
-                  return license.category === 'board_certification';
-                }
-                return false;
-              default:
-                return false;
-            }
-          }) || [];
-
-          // Filter to only show active licenses
-          const activeLicenses = matchingLicenses.filter(isActiveLicense);
-
-          // Update validation logic
-          switch (rule.requirement_type) {
-            case 'identifier':
-              isValid = Boolean(providerData.rawApiResponse['NPI Validation']?.npi);
-              validationMessage = isValid ? 'Valid NPI found' : 'No valid NPI found';
-              if (isValid) {
-                details = {
-                  number: providerData.rawApiResponse['NPI Validation'].npi,
-                };
-              }
-              break;
-            case 'certification':
-              isValid = activeLicenses.length > 0;
-              validationMessage = isValid 
-                ? `Valid ${rule.name} found`
-                : `No valid ${rule.name} found`;
-              
-              if (activeLicenses.length > 0) {
-                // Only include active licenses in the details
-                const licenseDetails = activeLicenses.map((license: License) => ({
-                  issuer: license.issuer || license.state,
-                  number: license.number,
-                  status: license.status,
-                  expirationDate: license.expirationDate,
-                  boardActions: license.hasBoardAction 
-                    ? license.boardActionData?.boardActionTexts 
-                    : undefined
-                }));
-                
-                details = {
-                  multipleDetails: licenseDetails
-                };
-              }
-              break;
-            case 'license':
-            case 'registration':
-              isValid = activeLicenses.length > 0;
-              validationMessage = isValid 
-                ? `Valid ${rule.name} found`
-                : `No valid ${rule.name} found`;
-              
-              if (activeLicenses.length > 0) {
-                // Only include active licenses in the details
-                const licenseDetails = activeLicenses.map((license: License) => ({
-                  issuer: license.issuer || license.state,
-                  number: license.number,
-                  status: license.status,
-                  expirationDate: license.expirationDate,
-                  boardActions: license.hasBoardAction 
-                    ? license.boardActionData?.boardActionTexts 
-                    : undefined
-                }));
-                
-                details = {
-                  multipleDetails: licenseDetails
-                };
-              }
-              break;
-            case 'background_check':
-              isValid = false;
-              validationMessage = 'No background check verification found';
-              break;
-            case 'insurance':
-              isValid = false;
-              validationMessage = 'No malpractice insurance verification found';
-              break;
-            case 'degree':
-              isValid = false;
-              validationMessage = 'No medical degree verification found';
-              break;
-            default:
-              isValid = false;
-              validationMessage = `No ${rule.name.toLowerCase()} verification found`;
-          }
-
+          const validation = validateRequirement(rule, providerData);
           return {
             ...rule,
-            is_valid: isValid,
-            validation_message: validationMessage,
-            details
+            ...validation
           };
         }),
         rawValidation: {
@@ -345,91 +149,26 @@ export function NPISearch({ loading = false }: NPISearchProps) {
     }
   };
 
-  // Debug logging effect
+  // Debug logging only in development
+  if (process.env.NODE_ENV === 'development') {
   useEffect(() => {
     if (searchResult?.rawValidation?.npiDetails) {
       console.group('Provider Data Structure');
       console.log('NPI Validation:', searchResult.rawValidation.npiDetails);
       console.log('NPI Validation Licenses:', searchResult.rawValidation.npiDetails.licenses);
       console.groupEnd();
-
-      console.group('Requirements');
-      searchResult.requirements.forEach(requirement => {
-        console.log(`${requirement.name}:`, {
-          type: requirement.requirement_type,
-          isValid: requirement.is_valid,
-          message: requirement.validation_message
-        });
-      });
-      console.groupEnd();
     }
   }, [searchResult]);
-
-  const formatExpirationDate = (date: string | undefined) => {
-    if (!date) return 'No expiration date';
-    try {
-      return new Date(date).toLocaleDateString();
-    } catch {
-      return 'Invalid date';
-    }
-  };
-
-  const isValidDate = (date: string | undefined) => {
-    if (!date) return false;
-    try {
-      new Date(date);
-      return true;
-    } catch {
-      return false;
-    }
-  };
+  }
 
   return (
     <Box sx={{ p: 4, bgcolor: 'background.paper', borderRadius: 1 }}>
-      <form onSubmit={handleSearch}>
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <TextField
-            fullWidth
-            label="Provider NPI*"
-            value={npi}
-            onChange={(e) => setNpi(e.target.value)}
-            disabled={loading}
-            inputProps={{
-              style: { fontSize: '1.2rem' }
-            }}
-          />
-          
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={loading || !npi || !isValidNPI(npi)}
-            sx={{
-              minWidth: { xs: '48px', sm: '150px' },
-              whiteSpace: 'nowrap',
-              textTransform: 'uppercase',
-              fontSize: { xs: '0.8rem', sm: '0.9rem' },
-              height: '56px',
-              px: { xs: 2, sm: 4 },
-              borderRadius: 1,
-              boxShadow: 2,
-              '&:hover': {
-                boxShadow: 4
-              }
-            }}
-          >
-            {loading ? (
-              <CircularProgress size={20} />
-            ) : (
-              <>
-                <SearchIcon sx={{ mr: { xs: 0, sm: 1 }, fontSize: { xs: '1.2rem', sm: '1.4rem' } }} />
-                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                  Check Eligibility
-                </Box>
-              </>
-            )}
-          </Button>
-        </Box>
-      </form>
+      <SearchForm
+        onSubmit={handleSearch}
+        npi={npi}
+        setNpi={setNpi}
+        loading={loading || isSearching}
+      />
 
       {searchResult && !error && (
         <Alert
@@ -455,169 +194,13 @@ export function NPISearch({ loading = false }: NPISearchProps) {
           </Typography>
           
           <Typography variant="subtitle1" sx={{ color: 'text.secondary', mb: 1 }}>
-            Provider Type: {searchResult.rawValidation.npiDetails.providerType || 'N/A'}
+            Provider Type: {searchResult.providerType || 'N/A'}
           </Typography>
 
-          <List sx={{ width: '100%' }}>
-            {searchResult.requirements
-              .sort((a, b) => {
-                const aIndex = REQUIREMENT_ORDER.indexOf(a.name);
-                const bIndex = REQUIREMENT_ORDER.indexOf(b.name);
-                if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-                if (aIndex !== -1) return -1;
-                if (bIndex !== -1) return 1;
-                return 0;
-              })
-              .map((requirement: Requirement) => {
-                const requirementDetails = requirement.details?.multipleDetails ? (
-                  <>
-                    {requirement.details.multipleDetails.map((detail: DetailType, index: number) => (
-                      <Box key={index} sx={{ mb: 2, '&:last-child': { mb: 0 } }}>
-                        {detail.issuer && (
-                          <Typography variant="body2" sx={{ mt: 0.5 }}>
-                            <strong>Issuer:</strong> {detail.issuer}
-                          </Typography>
-                        )}
-                        {detail.number && (
-                          <Typography variant="body2" sx={{ mt: 0.5 }}>
-                            <strong>Number:</strong> {detail.number}
-                          </Typography>
-                        )}
-                        {detail.status && (
-                          <Typography variant="body2" sx={{ mt: 0.5 }}>
-                            <strong>Status:</strong> {detail.status}
-                          </Typography>
-                        )}
-                        {detail.expirationDate && (
-                          <Typography variant="body2" sx={{ mt: 0.5 }}>
-                            <strong>Expiration Date:</strong> {formatExpirationDate(detail.expirationDate)}
-                          </Typography>
-                        )}
-                        {detail.boardActions && (
-                          <Accordion sx={{ mt: 1 }}>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                              <Typography color="warning.main">
-                                Board Actions Found
-                              </Typography>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                              <List dense>
-                                {detail.boardActions.map((action: string, actionIndex: number) => (
-                                  <ListItem key={actionIndex}>
-                                    <ListItemIcon>
-                                      <WarningIcon color="warning" />
-                                    </ListItemIcon>
-                                    <ListItemText primary={action} />
-                                  </ListItem>
-                                ))}
-                              </List>
-                            </AccordionDetails>
-                          </Accordion>
-                        )}
-                        {index < (requirement.details?.multipleDetails?.length ?? 0) - 1 && (
-                          <Divider sx={{ my: 2 }} />
-                        )}
-                      </Box>
-                    ))}
-                  </>
-                ) : (
-                  <Box>
-                    {requirement.details?.issuer && (
-                      <Typography variant="body2" sx={{ mt: 0.5 }}>
-                        <strong>Issuer:</strong> {requirement.details.issuer}
-                      </Typography>
-                    )}
-                    {requirement.details?.number && (
-                      <Typography variant="body2" sx={{ mt: 0.5 }}>
-                        <strong>Number:</strong> {requirement.details.number}
-                      </Typography>
-                    )}
-                    {requirement.details?.status && (
-                      <Typography variant="body2" sx={{ mt: 0.5 }}>
-                        <strong>Status:</strong> {requirement.details.status}
-                      </Typography>
-                    )}
-                    {requirement.details?.expirationDate && (
-                      <Typography variant="body2" sx={{ mt: 0.5 }}>
-                        <strong>Expiration Date:</strong> {formatExpirationDate(requirement.details.expirationDate)}
-                      </Typography>
-                    )}
-                    {requirement.details?.boardActions && (
-                      <Accordion sx={{ mt: 1 }}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Typography color="warning.main">
-                            Board Actions Found
-                          </Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <List dense>
-                            {requirement.details.boardActions.map((action: string, index: number) => (
-                              <ListItem key={index}>
-                                <ListItemIcon>
-                                  <WarningIcon color="warning" />
-                                </ListItemIcon>
-                                <ListItemText primary={action} />
-                              </ListItem>
-                            ))}
-                          </List>
-                        </AccordionDetails>
-                      </Accordion>
-                    )}
-                  </Box>
-                );
-
-                return (
-                  <ListItem key={requirement.id} sx={{ px: 0 }}>
-                    <ListItemIcon>
-                      {requirement.is_valid ? (
-                        <CheckIcon sx={{ color: 'success.main' }} />
-                      ) : (
-                        <CloseIcon sx={{ color: requirement.is_required ? 'error.main' : 'warning.main' }} />
-                      )}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          {requirement.name}
-                          {requirement.details?.boardActions && (
-                            <Chip
-                              icon={<WarningIcon />}
-                              label="Board Actions"
-                              color="warning"
-                              size="small"
-                            />
-                          )}
-                        </Box>
-                      }
-                      secondary={
-                        <Box component="div">
-                          <Typography component="div" variant="body2">
-                            {requirement.description}
-                          </Typography>
-                          {requirement.validation_message && (
-                            <Typography 
-                              component="div"
-                              variant="body2"
-                              sx={{ 
-                                color: requirement.is_valid ? 'success.main' : 'error.main',
-                                mt: 0.5 
-                              }}
-                            >
-                              {requirement.validation_message}
-                            </Typography>
-                          )}
-                          {requirement.is_valid && requirement.details && (
-                            <Box sx={{ mt: 1, pl: 2, borderLeft: '2px solid #e0e0e0' }}>
-                              {requirementDetails}
-                            </Box>
-                          )}
-                        </Box>
-                      }
-                    />
-                  </ListItem>
-                );
-              })}
-          </List>
+          <RequirementList
+            requirements={searchResult.requirements}
+            requirementOrder={REQUIREMENT_ORDER}
+          />
 
           <Box sx={{ mt: 3 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>

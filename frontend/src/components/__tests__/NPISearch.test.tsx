@@ -146,13 +146,15 @@ describe('NPISearch Component', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: /check eligibility/i }))
 
-    // Wait for results with more flexible text matching
+    // Wait for results
     await waitFor(() => {
       // Check board certification is displayed correctly
-      const boardCertElements = screen.getAllByText(/board certification/i);
-      expect(boardCertElements.length).toBeGreaterThan(0);
-      expect(screen.getByText(/valid board certification found/i, { selector: '.MuiTypography-body2' })).toBeInTheDocument();
-      expect(screen.getByText(/ABMS - American Board of Medical Specialties/i, { selector: '.MuiTypography-body2' })).toBeInTheDocument();
+      expect(screen.getByText(/Board Certification/)).toBeInTheDocument();
+      expect(screen.getByText(/valid board certification/i)).toBeInTheDocument();
+      expect(screen.getByText(/ABMS - American Board of Medical Specialties/)).toBeInTheDocument();
+      
+      // Verify it's not showing as a CPR certification
+      expect(screen.queryByText(/CPR Certification/i)).not.toBeInTheDocument();
     })
   })
 
@@ -176,13 +178,15 @@ describe('NPISearch Component', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: /check eligibility/i }))
 
-    // Wait for results with more flexible text matching
+    // Wait for results
     await waitFor(() => {
       // Check CPR certification is displayed correctly
-      const cprCertElements = screen.getAllByText(/cpr certification/i);
-      expect(cprCertElements.length).toBeGreaterThan(0);
-      expect(screen.getByText(/valid cpr certification found/i, { selector: '.MuiTypography-body2' })).toBeInTheDocument();
-      expect(screen.getByText(/American Heart Association/i, { selector: '.MuiTypography-body2' })).toBeInTheDocument();
+      expect(screen.getByText(/CPR Certification/)).toBeInTheDocument();
+      expect(screen.getByText(/valid cpr certification/i)).toBeInTheDocument();
+      expect(screen.getByText(/American Heart Association/)).toBeInTheDocument();
+      
+      // Verify it's not showing as a board certification
+      expect(screen.queryByText(/Board Certification/i)).not.toBeInTheDocument();
     })
   })
 
