@@ -228,10 +228,16 @@ export function NPISearch({ loading = false }: NPISearchProps) {
                 p: 2, 
                 bgcolor: '#f5f5f5',
                 maxHeight: '400px',
-                overflow: 'auto'
+                overflow: 'auto',
+                '& pre': {
+                  margin: 0,
+                  whiteSpace: 'pre-wrap',
+                  wordWrap: 'break-word',
+                  overflowY: 'auto'
+                }
               }}
             >
-              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+              <pre>
                 {JSON.stringify(searchResult.rawValidation, null, 2)}
               </pre>
             </Paper>

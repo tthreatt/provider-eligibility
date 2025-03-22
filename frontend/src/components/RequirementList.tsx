@@ -13,20 +13,11 @@ import CloseIcon from '@mui/icons-material/Close';
 import WarningIcon from '@mui/icons-material/Warning';
 import { Requirement } from '../types/eligibility';
 import { RequirementDetail } from './RequirementDetail';
+import type { BaseDetailType, LicenseDetailType, CertificationDetailType, NPIDetailType, DetailType } from './RequirementDetail';
 
 interface RequirementListProps {
   requirements: Requirement[];
   requirementOrder: string[];
-}
-
-interface DetailType {
-  issuer: string;
-  type: string;
-  number: string;
-  status: string;
-  expirationDate: string | null;
-  boardActions: string[];
-  hasBoardAction: boolean;
 }
 
 interface ValidationDetail {
@@ -37,6 +28,10 @@ interface ValidationDetail {
   expirationDate?: string;
   boardActions?: string[];
   hasBoardAction?: boolean;
+  additionalInfo?: {
+    deaSchedules?: string;
+    licenseState?: string;
+  };
   multipleDetails?: ValidationDetail[];
 }
 
@@ -94,15 +89,56 @@ export const RequirementList: React.FC<RequirementListProps> = ({
     return chips;
   };
 
-  const formatDetailForDisplay = (detail: ValidationDetail): DetailType => ({
-    issuer: detail.issuer || 'Unknown',
-    type: detail.type || 'Unknown',
-    number: detail.number || 'Not Available',
-    status: detail.status || 'Unknown',
-    expirationDate: detail.expirationDate || null,
-    boardActions: Array.isArray(detail.boardActions) ? detail.boardActions : [],
-    hasBoardAction: Boolean(detail.hasBoardAction)
-  });
+  const formatDetailForDisplay = (detail: ValidationDetail, requirementType: string): DetailType => {
+    const normalizedType = requirementType.toLowerCase().replace(/\s+/g, '_');
+
+    if (normalizedType === 'national_provider_identifier' || normalizedType === 'npi') {
+      return {
+        number: detail.number || 'Not Available',
+        status: detail.status || 'Unknown'
+      } as NPIDetailType;
+    }
+
+    if (normalizedType === 'board_certification') {
+      return {
+        type: detail.type || 'Unknown',
+        issuer: detail.issuer || 'Unknown',
+        number: detail.number || 'Not Available',
+        status: detail.status || 'Unknown',
+        expirationDate: detail.expirationDate || null,
+        boardActions: Array.isArray(detail.boardActions) ? detail.boardActions : [],
+        hasBoardAction: Boolean(detail.hasBoardAction)
+      } as CertificationDetailType;
+    }
+
+    // Handle licenses (State License, DEA)
+    if (normalizedType === 'dea_registration' || normalizedType.includes('dea')) {
+      return {
+        issuer: detail.issuer || 'Unknown',
+        type: detail.type || 'Unknown',
+        number: detail.number || 'Not Available',
+        status: detail.status || 'Unknown',
+        expirationDate: detail.expirationDate || null,
+        boardActions: Array.isArray(detail.boardActions) ? detail.boardActions : [],
+        hasBoardAction: Boolean(detail.hasBoardAction),
+        additionalInfo: {
+          deaSchedules: detail.additionalInfo?.deaSchedules,
+          licenseState: detail.additionalInfo?.licenseState
+        }
+      } as LicenseDetailType;
+    }
+
+    // Handle licenses (State License, DEA)
+    return {
+      issuer: detail.issuer || 'Unknown',
+      type: detail.type || 'Unknown',
+      number: detail.number || 'Not Available',
+      status: detail.status || 'Unknown',
+      expirationDate: detail.expirationDate || null,
+      boardActions: Array.isArray(detail.boardActions) ? detail.boardActions : [],
+      hasBoardAction: Boolean(detail.hasBoardAction)
+    } as LicenseDetailType;
+  };
 
   return (
     <List sx={{ width: '100%' }}>
@@ -133,7 +169,8 @@ export const RequirementList: React.FC<RequirementListProps> = ({
                       requirement.details.multipleDetails.map((detail, index) => (
                         <RequirementDetail
                           key={index}
-                          detail={formatDetailForDisplay(detail)}
+                          detail={formatDetailForDisplay(detail, requirement.name)}
+                          requirementType={requirement.name}
                           isMultiple
                           index={index}
                           totalItems={requirement.details?.multipleDetails?.length ?? 0}
@@ -141,7 +178,8 @@ export const RequirementList: React.FC<RequirementListProps> = ({
                       ))
                     ) : (
                       <RequirementDetail 
-                        detail={formatDetailForDisplay(requirement.details)}
+                        detail={formatDetailForDisplay(requirement.details, requirement.name)}
+                        requirementType={requirement.name}
                       />
                     )}
                   </Box>

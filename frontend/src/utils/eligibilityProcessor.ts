@@ -12,6 +12,10 @@ interface RawLicense {
   boardActionData?: {
     boardActionTexts?: string[];
   };
+  additionalInfo?: {
+    deaSchedules?: string;
+    licenseState?: string;
+  };
 }
 
 interface CleanLicense {
@@ -22,6 +26,10 @@ interface CleanLicense {
   expirationDate: string | null;
   boardActions: string[];
   hasBoardAction: boolean;
+  additionalInfo?: {
+    deaSchedules?: string;
+    licenseState?: string;
+  };
 }
 
 interface RawApiResponse {
@@ -123,7 +131,8 @@ export const cleanLicenseData = (license: RawLicense): CleanLicense | null => {
     status: license.status || 'Unknown',
     expirationDate: license.expirationDate || null,
     boardActions: license.boardActionData?.boardActionTexts || [],
-    hasBoardAction: Boolean(license.boardActionData?.boardActionTexts?.length)
+    hasBoardAction: Boolean(license.boardActionData?.boardActionTexts?.length),
+    additionalInfo: license.additionalInfo
   };
 };
 
@@ -266,6 +275,14 @@ export const validateRequirement = (requirement: any, providerData: { rawApiResp
           boardActions: [],
           hasBoardAction: false
         }
+      };
+
+    case 'degree':
+      const degreeVerification = verifications.find((v: any) => v.type === 'medical_degree');
+      return {
+        is_valid: Boolean(degreeVerification?.verified),
+        validation_message: 'Medical degree verification',
+        details: undefined
       };
 
     case 'license':
