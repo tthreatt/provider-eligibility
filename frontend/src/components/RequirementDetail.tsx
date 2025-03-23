@@ -16,6 +16,8 @@ import WarningIcon from '@mui/icons-material/Warning';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CheckIcon from '@mui/icons-material/Check';
 import { formatExpirationDate } from '../utils/eligibilityProcessor';
+import { CheckCircle, Cancel } from '@mui/icons-material';
+import { generateDetailTestId } from '../utils/testUtils';
 
 export interface BaseDetailType {
   type: string;
@@ -63,18 +65,59 @@ interface DetailFieldProps {
 }
 
 const DetailField: React.FC<DetailFieldProps> = ({ label, value, isStatus, isActive }) => {
-  if (!shouldDisplayField(value)) return null;
+  if (!value) return null;
 
   return (
-    <Typography 
-      variant="body2"
-      sx={isStatus ? { color: isActive ? 'success.main' : 'error.main' } : undefined}
+    <Box 
+      component="div" 
+      sx={{ 
+        display: 'flex', 
+        alignItems: 'flex-start', 
+        mt: 1,
+        '& > *': { margin: 0 }
+      }}
+      data-testid={generateDetailTestId(label, value)}
     >
-      <strong>{label}:</strong> {value}
-      {isStatus && isActive && (
-        <CheckIcon sx={{ ml: 1, fontSize: '1rem', color: 'success.main', verticalAlign: 'text-bottom' }} />
+      <Typography 
+        component="span" 
+        variant="body1" 
+        sx={{ 
+          fontWeight: 'bold', 
+          mr: 1,
+          display: 'inline' 
+        }}
+      >
+        {label}:
+      </Typography>
+      {isStatus ? (
+        <Box 
+          component="span"
+          sx={{ 
+            color: isActive ? 'success.main' : 'error.main',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5
+          }}
+        >
+          <Typography 
+            component="span" 
+            variant="body1" 
+            sx={{ display: 'inline' }}
+          >
+            {value}
+          </Typography>
+          {isActive ? <CheckCircle fontSize="small" /> : <Cancel fontSize="small" />}
+        </Box>
+      ) : (
+        <Typography 
+          component="span" 
+          variant="body1" 
+          sx={{ display: 'inline' }}
+        >
+          {value}
+        </Typography>
       )}
-    </Typography>
+    </Box>
   );
 };
 
@@ -84,13 +127,43 @@ const DetailWrapper: React.FC<{
   index?: number;
   totalItems?: number;
 }> = ({ children, isMultiple, index, totalItems }) => (
-  <Box sx={{ mb: 2, '&:last-child': { mb: 0 } }}>
+  <Box component="div" sx={{ mb: 2, '&:last-child': { mb: 0 } }}>
     {children}
     {isMultiple && index !== undefined && totalItems !== undefined && index < totalItems - 1 && (
       <Divider sx={{ my: 2 }} />
     )}
   </Box>
 );
+
+const renderBoardActions = (actions?: string[]) => {
+  if (!actions || actions.length === 0) return null;
+
+  return (
+    <Box component="div" sx={{ mt: 2 }}>
+      <Typography 
+        component="div" 
+        variant="h6" 
+        gutterBottom
+        data-testid="board-actions-title"
+      >
+        Board Actions History
+      </Typography>
+      <List>
+        {actions.map((action, idx) => (
+          <ListItem key={idx}>
+            <ListItemIcon>
+              <WarningIcon color="warning" />
+            </ListItemIcon>
+            <ListItemText
+              primary={action}
+              data-testid={`board-action-${idx + 1}-text`}
+            />
+          </ListItem>
+        ))}
+      </List>
+    </Box>
+  );
+};
 
 export const RequirementDetail: React.FC<RequirementDetailProps> = ({
   detail,
@@ -138,14 +211,13 @@ export const RequirementDetail: React.FC<RequirementDetailProps> = ({
           label="Expiration Date"
           value={formatExpirationDate(certDetail.expirationDate)}
         />
+        {renderBoardActions(certDetail.boardActions)}
       </DetailWrapper>
     );
   }
 
-  const licenseDetail = detail as LicenseDetailType;
-  const isActive = licenseDetail.status?.toLowerCase() === 'active';
-
-  if (isDEARequirement(normalizedType)) {
+  if (normalizedType === 'state_license') {
+    const licenseDetail = detail as LicenseDetailType;
     return (
       <DetailWrapper isMultiple={isMultiple} index={index} totalItems={totalItems}>
         <DetailField label="Issuer" value={licenseDetail.issuer} />
@@ -155,25 +227,20 @@ export const RequirementDetail: React.FC<RequirementDetailProps> = ({
           label="Status"
           value={licenseDetail.status}
           isStatus={true}
-          isActive={isActive}
+          isActive={licenseDetail.status?.toLowerCase() === 'active'}
         />
         <DetailField 
           label="Expiration Date"
           value={formatExpirationDate(licenseDetail.expirationDate)}
         />
-        <DetailField 
-          label="DEA Schedules"
-          value={licenseDetail.additionalInfo?.deaSchedules}
-        />
-        <DetailField 
-          label="License State"
-          value={licenseDetail.additionalInfo?.licenseState}
-        />
+        {renderBoardActions(licenseDetail.boardActions)}
       </DetailWrapper>
     );
   }
 
-  // Handle State License
+  const licenseDetail = detail as LicenseDetailType;
+  const isActive = licenseDetail.status?.toLowerCase() === 'active';
+
   return (
     <DetailWrapper isMultiple={isMultiple} index={index} totalItems={totalItems}>
       <DetailField label="Issuer" value={licenseDetail.issuer} />
@@ -189,7 +256,7 @@ export const RequirementDetail: React.FC<RequirementDetailProps> = ({
         label="Expiration Date"
         value={formatExpirationDate(licenseDetail.expirationDate)}
       />
-      {renderBoardActions(licenseDetail)}
+      {renderBoardActions(licenseDetail.boardActions)}
     </DetailWrapper>
   );
 };
@@ -210,49 +277,4 @@ const shouldDisplayField = (value: string | number | null | undefined): boolean 
   return true;
 };
 
-const renderBoardActions = (detail: BaseDetailType) => {
-  const hasBoardActions = detail.boardActions?.length && detail.hasBoardAction;
-  
-  if (!hasBoardActions || !detail.boardActions) return null;
-  
-  return (
-    <Accordion sx={{ mt: 1 }}>
-      <AccordionSummary 
-        expandIcon={<ExpandMoreIcon />}
-        sx={{
-          backgroundColor: 'background.paper',
-          '&:hover': {
-            backgroundColor: 'background.paper',
-          }
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <WarningIcon color="warning" />
-          <Typography color="warning.dark" fontWeight="medium">
-            Board Actions History
-          </Typography>
-        </Box>
-      </AccordionSummary>
-      <AccordionDetails>
-        <List dense>
-          {detail.boardActions.map((action, actionIndex) => (
-            <ListItem key={actionIndex} sx={{ display: 'flex', alignItems: 'flex-start' }}>
-              <ListItemIcon sx={{ mt: 0.5 }}>
-                <WarningIcon color="warning" />
-              </ListItemIcon>
-              <ListItemText 
-                primary={action}
-                sx={{
-                  '& .MuiListItemText-primary': {
-                    fontWeight: 'medium',
-                    color: 'text.primary'
-                  }
-                }}
-              />
-            </ListItem>
-          ))}
-        </List>
-      </AccordionDetails>
-    </Accordion>
-  );
-}; 
+export default RequirementDetail; 

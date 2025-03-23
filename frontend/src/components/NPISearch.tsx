@@ -18,7 +18,7 @@ import CancelIcon from "@mui/icons-material/Cancel"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import { API_ROUTES } from '../config/api'
 import { SearchForm } from './SearchForm'
-import { RequirementList } from './RequirementList'
+import RequirementList from './RequirementList'
 import { ProcessedEligibility } from '../types/eligibility'
 import { processRequirementDetails, cleanRawApiResponse, validateRequirement } from '../utils/eligibilityProcessor'
 
@@ -117,7 +117,10 @@ export function NPISearch({ loading = false }: NPISearchProps) {
           const validation = validateRequirement(rule, providerData);
           return {
             ...rule,
-            ...validation
+            ...validation,
+            type: rule.requirement_type,
+            status: validation.is_valid ? 'valid' : (rule.is_required ? 'required' : 'optional'),
+            details: validation.details || []
           };
         }),
         rawValidation: {

@@ -21,10 +21,48 @@ export interface BaseRequirement {
   validation_rules: ValidationRule;
 }
 
-export interface Requirement extends BaseRequirement {
+export interface ValidationDetail {
+  issuer?: string;
+  type?: string;
+  number?: string;
+  status?: string;
+  expirationDate?: string | null;
+  boardActions?: string[];
+  hasBoardAction?: boolean;
+  additionalInfo?: {
+    deaSchedules?: string[];
+    licenseState?: string;
+  };
+  details?: {
+    issuer?: string;
+    type?: string;
+    number?: string;
+    status?: string;
+    expirationDate?: string | null;
+    boardActions?: string[];
+    hasBoardAction?: boolean;
+    additionalInfo?: {
+      deaSchedules?: string[];
+      licenseState?: string;
+    };
+  };
+}
+
+export interface Requirement {
+  id: number;
+  requirement_type: string;
+  type: string;
+  name: string;
+  description: string;
+  validation_rules: ValidationRule;
   is_required: boolean;
+  is_valid: boolean;
+  validation_message?: string;
+  status: 'valid' | 'invalid' | 'required' | 'optional';
+  details: ValidationDetail[];
   base_requirement_id: number;
   provider_type_id: number;
+  severity: number;
 }
 
 export interface ProviderType {
@@ -57,34 +95,6 @@ export interface NPIValidation {
     enumerationDate?: string;
     gender?: string;
   };
-}
-
-export interface Requirement {
-  requirement_type: string;
-  name: string;
-  description: string;
-  is_required: boolean;
-  is_valid: boolean;
-  validation_message?: string;
-  validation_rules: Record<string, any>;
-  details?: {
-    issuer?: string;
-    number?: string;
-    expirationDate?: string;
-    status?: string;
-    boardActions?: string[];
-    multipleDetails?: Array<{
-      issuer?: string;
-      number?: string;
-      status?: string;
-      expirationDate?: string;
-      boardActions?: string[];
-    }>;
-  };
-  base_requirement_id: number;
-  provider_type_id: number;
-  id: number;
-  severity: number;
 }
 
 export interface ProcessedEligibility {

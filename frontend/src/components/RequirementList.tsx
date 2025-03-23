@@ -3,7 +3,6 @@ import {
   List,
   ListItem,
   ListItemIcon,
-  ListItemText,
   Box,
   Typography,
   Chip
@@ -11,184 +10,173 @@ import {
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import WarningIcon from '@mui/icons-material/Warning';
-import { Requirement } from '../types/eligibility';
+import { Requirement, ValidationDetail } from '../types/eligibility';
 import { RequirementDetail } from './RequirementDetail';
 import type { BaseDetailType, LicenseDetailType, CertificationDetailType, NPIDetailType, DetailType } from './RequirementDetail';
 
 interface RequirementListProps {
   requirements: Requirement[];
-  requirementOrder: string[];
+  requirementOrder?: string[];
 }
 
-interface ValidationDetail {
-  issuer?: string;
-  type?: string;
-  number?: string;
-  status?: string;
-  expirationDate?: string;
-  boardActions?: string[];
-  hasBoardAction?: boolean;
-  additionalInfo?: {
-    deaSchedules?: string;
-    licenseState?: string;
-  };
-  multipleDetails?: ValidationDetail[];
-}
-
-export const RequirementList: React.FC<RequirementListProps> = ({
-  requirements,
-  requirementOrder
-}) => {
-  const sortedRequirements = [...requirements].sort((a, b) => {
-    const aIndex = requirementOrder.indexOf(a.name);
-    const bIndex = requirementOrder.indexOf(b.name);
-    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-    if (aIndex !== -1) return -1;
-    if (bIndex !== -1) return 1;
-    return 0;
-  });
-
-  const getStatusIcon = (requirement: Requirement) => {
-    if (requirement.is_valid) {
+const RequirementList: React.FC<RequirementListProps> = ({ requirements, requirementOrder }) => {
+  const getStatusIcon = (status: Requirement['status']) => {
+    if (status === 'valid') {
       return <CheckIcon sx={{ color: 'success.main' }} />;
     }
-    return <CloseIcon sx={{ color: requirement.is_required ? 'error.main' : 'warning.main' }} />;
+    return <CloseIcon sx={{ color: status === 'required' ? 'error.main' : 'warning.main' }} />;
   };
 
   const getStatusChips = (requirement: Requirement) => {
-    const chips = [];
-    
+    const chips: JSX.Element[] = [];
+
     // Board Actions chip
-    if (requirement.details?.boardActions?.length || 
-        requirement.details?.multipleDetails?.some(d => d.boardActions?.length)) {
+    const hasBoardActions = requirement.details?.some(detail => 
+      (detail?.boardActions?.length ?? 0) > 0 || detail?.hasBoardAction
+    );
+    
+    if (hasBoardActions) {
       chips.push(
         <Chip
           key="board-actions"
-          icon={<WarningIcon />}
-          label="Board Actions"
+          label="Has Board Actions"
           color="warning"
           size="small"
+          data-testid="board-actions-chip"
         />
       );
     }
-    
+
+    // Multiple Details chip
+    if (requirement.details?.length > 1) {
+      chips.push(
+        <Chip
+          key="multiple"
+          label="Multiple"
+          color="info"
+          size="small"
+          data-testid="multiple-details-chip"
+        />
+      );
+    }
+
     // Verification Required chip
-    const needsVerification = !requirement.is_valid && !requirement.details;
-    if (needsVerification) {
+    if (requirement.status !== 'valid' && (!requirement.details || requirement.details.length === 0)) {
       chips.push(
         <Chip
           key="verification"
-          icon={<WarningIcon />}
           label="Verification Required"
           color="warning"
           size="small"
+          data-testid="verification-required-chip"
         />
       );
     }
-    
+
     return chips;
   };
 
   const formatDetailForDisplay = (detail: ValidationDetail, requirementType: string): DetailType => {
     const normalizedType = requirementType.toLowerCase().replace(/\s+/g, '_');
+    const detailData = detail.details || detail;
 
     if (normalizedType === 'national_provider_identifier' || normalizedType === 'npi') {
       return {
-        number: detail.number || 'Not Available',
-        status: detail.status || 'Unknown'
+        number: detailData.number || 'Not Available',
+        status: detailData.status || 'Unknown',
+        type: 'NPI'
       } as NPIDetailType;
     }
 
     if (normalizedType === 'board_certification') {
       return {
-        type: detail.type || 'Unknown',
-        issuer: detail.issuer || 'Unknown',
-        number: detail.number || 'Not Available',
-        status: detail.status || 'Unknown',
-        expirationDate: detail.expirationDate || null,
-        boardActions: Array.isArray(detail.boardActions) ? detail.boardActions : [],
-        hasBoardAction: Boolean(detail.hasBoardAction)
+        type: detailData.type || 'Unknown',
+        issuer: detailData.issuer || 'Unknown',
+        number: detailData.number || 'Not Available',
+        status: detailData.status || 'Unknown',
+        expirationDate: detailData.expirationDate || null,
+        boardActions: detailData.boardActions || [],
+        hasBoardAction: Boolean(detailData.hasBoardAction)
       } as CertificationDetailType;
     }
 
     // Handle licenses (State License, DEA)
     if (normalizedType === 'dea_registration' || normalizedType.includes('dea')) {
       return {
-        issuer: detail.issuer || 'Unknown',
-        type: detail.type || 'Unknown',
-        number: detail.number || 'Not Available',
-        status: detail.status || 'Unknown',
-        expirationDate: detail.expirationDate || null,
-        boardActions: Array.isArray(detail.boardActions) ? detail.boardActions : [],
-        hasBoardAction: Boolean(detail.hasBoardAction),
+        issuer: detailData.issuer || 'Unknown',
+        type: detailData.type || 'Unknown',
+        number: detailData.number || 'Not Available',
+        status: detailData.status || 'Unknown',
+        expirationDate: detailData.expirationDate || null,
+        boardActions: detailData.boardActions || [],
+        hasBoardAction: Boolean(detailData.hasBoardAction),
         additionalInfo: {
-          deaSchedules: detail.additionalInfo?.deaSchedules,
-          licenseState: detail.additionalInfo?.licenseState
+          deaSchedules: detailData.additionalInfo?.deaSchedules,
+          licenseState: detailData.additionalInfo?.licenseState
         }
       } as LicenseDetailType;
     }
 
-    // Handle licenses (State License, DEA)
+    // Handle other licenses and certifications
     return {
-      issuer: detail.issuer || 'Unknown',
-      type: detail.type || 'Unknown',
-      number: detail.number || 'Not Available',
-      status: detail.status || 'Unknown',
-      expirationDate: detail.expirationDate || null,
-      boardActions: Array.isArray(detail.boardActions) ? detail.boardActions : [],
-      hasBoardAction: Boolean(detail.hasBoardAction)
+      issuer: detailData.issuer || 'Unknown',
+      type: detailData.type || 'Unknown',
+      number: detailData.number || 'Not Available',
+      status: detailData.status || 'Unknown',
+      expirationDate: detailData.expirationDate || null,
+      boardActions: detailData.boardActions || [],
+      hasBoardAction: Boolean(detailData.hasBoardAction)
     } as LicenseDetailType;
   };
 
+  // Sort requirements if requirementOrder is provided
+  const sortedRequirements = requirementOrder 
+    ? [...requirements].sort((a, b) => {
+        const aIndex = requirementOrder.indexOf(a.name);
+        const bIndex = requirementOrder.indexOf(b.name);
+        return (aIndex === -1 ? Infinity : aIndex) - (bIndex === -1 ? Infinity : bIndex);
+      })
+    : requirements;
+
   return (
-    <List sx={{ width: '100%' }}>
-      {sortedRequirements.map((requirement) => (
-        <ListItem key={requirement.id} sx={{ px: 0 }}>
-          <ListItemIcon>
-            {getStatusIcon(requirement)}
-          </ListItemIcon>
-          <ListItemText
-            primary={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <List>
+      {sortedRequirements.map((requirement, index) => (
+        <ListItem
+          key={requirement.id || index}
+          sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            '& > .MuiBox-root': { flexGrow: 1 }
+          }}
+        >
+          <Box component="div" sx={{ mt: 0.5, mr: 2 }}>
+            {getStatusIcon(requirement.status)}
+          </Box>
+          <Box component="div" sx={{ flexGrow: 1 }}>
+            <Box component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography component="span" variant="body1">
                 {requirement.name}
-                {getStatusChips(requirement).map(chip => (
-                  <Box key={chip.key} sx={{ ml: 1 }}>
-                    {chip}
-                  </Box>
-                ))}
-              </Box>
-            }
-            secondary={
-              <Box component="div">
-                <Typography component="div" variant="body2">
-                  {requirement.description}
-                </Typography>
-                {requirement.details && (
-                  <Box sx={{ mt: 1, pl: 2, borderLeft: '2px solid #e0e0e0' }}>
-                    {requirement.details.multipleDetails ? (
-                      requirement.details.multipleDetails.map((detail, index) => (
-                        <RequirementDetail
-                          key={index}
-                          detail={formatDetailForDisplay(detail, requirement.name)}
-                          requirementType={requirement.name}
-                          isMultiple
-                          index={index}
-                          totalItems={requirement.details?.multipleDetails?.length ?? 0}
-                        />
-                      ))
-                    ) : (
-                      <RequirementDetail 
-                        detail={formatDetailForDisplay(requirement.details, requirement.name)}
-                        requirementType={requirement.name}
-                      />
-                    )}
-                  </Box>
-                )}
-              </Box>
-            }
-          />
+              </Typography>
+              {getStatusChips(requirement)}
+            </Box>
+            <Box component="div" sx={{ mt: 1 }}>
+              {requirement.details?.map((detail: ValidationDetail, detailIndex: number) => (
+                <Box component="div" key={`${requirement.id}-${detailIndex}`}>
+                  <RequirementDetail
+                    detail={formatDetailForDisplay(detail, requirement.type)}
+                    requirementType={requirement.type}
+                    isMultiple={requirement.details?.length > 1}
+                    index={detailIndex}
+                    totalItems={requirement.details?.length || 0}
+                  />
+                </Box>
+              ))}
+            </Box>
+          </Box>
         </ListItem>
       ))}
     </List>
   );
-}; 
+};
+
+export default RequirementList; 
