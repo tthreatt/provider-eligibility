@@ -115,6 +115,25 @@ export function NPISearch({ loading = false }: NPISearchProps) {
         isEligible: true,
         requirements: providerTypeRules.requirements.map((rule: any) => {
           const validation = validateRequirement(rule, providerData);
+          
+          // Special handling for NPI requirement
+          if (rule.requirement_type.toLowerCase().includes('npi') || 
+              rule.name.toLowerCase().includes('national provider identifier')) {
+            return {
+              id: rule.id,
+              name: rule.name,
+              requirement_type: 'npi',
+              is_valid: true,
+              status: 'valid',
+              is_required: rule.is_required,
+              details: [{
+                number: npi,
+                status: 'Active',
+                isNPI: true
+              }]
+            };
+          }
+          
           return {
             ...rule,
             ...validation,

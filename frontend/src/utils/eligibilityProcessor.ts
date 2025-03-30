@@ -11,11 +11,12 @@ interface RawLicense {
   expirationDate?: string;
   boardActionData?: {
     boardActionTexts?: string[];
+    boardActionScreenshotIds?: string[];
   };
   boardActions?: string[];
   hasBoardAction?: boolean;
   additionalInfo?: {
-    deaSchedules?: string[];
+    deaSchedules?: string;
     licenseState?: string;
   };
   details?: {
@@ -25,10 +26,14 @@ interface RawLicense {
     number?: string;
     status?: string;
     expirationDate?: string;
+    boardActionData?: {
+      boardActionTexts?: string[];
+      boardActionScreenshotIds?: string[];
+    };
     boardActions?: string[];
     hasBoardAction?: boolean;
     additionalInfo?: {
-      deaSchedules?: string[];
+      deaSchedules?: string;
       licenseState?: string;
     };
   };
@@ -69,7 +74,7 @@ interface ValidationDetail {
   boardActions: string[];
   hasBoardAction: boolean;
   additionalInfo?: {
-    deaSchedules?: string[];
+    deaSchedules?: string;
     licenseState?: string;
   };
   details?: {
@@ -81,7 +86,7 @@ interface ValidationDetail {
     boardActions?: string[];
     hasBoardAction?: boolean;
     additionalInfo?: {
-      deaSchedules?: string[];
+      deaSchedules?: string;
       licenseState?: string;
     };
   };
@@ -160,28 +165,22 @@ export const cleanLicenseData = (license: RawLicense): ValidationDetail => {
   // Always use the details property if it exists, otherwise use top-level data
   const details = license.details || license;
 
-  // Standardize issuer names to match test expectations
-  let issuer = details.issuer || 'Unknown';
-  if (issuer.toLowerCase().includes('abms') || issuer.toLowerCase().includes('american board of medical specialties')) {
-    issuer = 'ABMS - American Board of Medical Specialties';
-  } else if (issuer.toLowerCase().includes('american heart')) {
-    issuer = 'American Heart Association';
-  } else if (issuer.toLowerCase().includes('tennessee')) {
-    issuer = 'Tennessee';
-  }
+  // Get board actions from boardActionData if available
+  const boardActions = details.boardActionData?.boardActionTexts || details.boardActions || [];
+  const hasBoardAction = Boolean(details.hasBoardAction || boardActions.length > 0);
+
+  // Pass through additionalInfo directly without processing
+  const additionalInfo = details.additionalInfo || {};
 
   return {
-    issuer,
+    issuer: details.issuer || 'Unknown',
     type: details.type || 'Unknown',
     number: details.number || 'Not Available',
     status: details.status || 'Unknown',
     expirationDate: details.expirationDate || null,
-    boardActions: details.boardActions || [],
-    hasBoardAction: Boolean(details.hasBoardAction),
-    details: {
-      ...details,
-      issuer // Use standardized issuer name
-    }
+    boardActions,
+    hasBoardAction,
+    additionalInfo
   };
 };
 
@@ -293,37 +292,73 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
   // Process license requirements if available
   if (npiValidation.npiDetails.licenses && npiValidation.npiDetails.licenses.length > 0) {
     npiValidation.npiDetails.licenses.forEach((license, index) => {
-      if (license.number && license.state) {
+      if (license.number) {
         const isActive = license.status?.toLowerCase() === 'active';
-        requirements.push({
-          requirement_type: 'LICENSE',
-          type: 'State License',
-          name: `State License - ${license.state}`,
-          description: `Valid medical license in ${license.state}`,
-          is_required: true,
-          is_valid: Boolean(license.number && isActive),
-          validation_message: isActive 
-            ? `Valid license found: ${license.number}`
-            : `License ${license.number} is not active`,
-          validation_rules: {
-            required: true,
-            status: 'active'
-          },
-          details: [{
-            type: license.type || 'State License',
-            issuer: license.state,
-            number: license.number,
-            status: license.status || 'Unknown',
-            expirationDate: license.expirationDate || null,
-            boardActions: [],
-            hasBoardAction: false
-          }],
-          base_requirement_id: 2 + index,
-          provider_type_id: 1,
-          id: 2 + index,
-          severity: 1,
-          status: isActive ? 'valid' : 'required'
-        });
+        const isStateLicense = !license.type?.toLowerCase().includes('dea');
+        
+        if (isStateLicense) {
+          requirements.push({
+            requirement_type: 'LICENSE',
+            type: 'State License',
+            name: `State License - ${license.state || 'Unknown'}`,
+            description: `Valid medical license in ${license.state || 'Unknown'}`,
+            is_required: true,
+            is_valid: Boolean(license.number && isActive),
+            validation_message: isActive 
+              ? `Valid license found: ${license.number}`
+              : `License ${license.number} is not active`,
+            validation_rules: {
+              required: true,
+              status: 'active'
+            },
+            details: [{
+              type: license.type || 'State License',
+              issuer: license.state || 'Unknown',
+              number: license.number,
+              status: license.status || 'Unknown',
+              expirationDate: license.expirationDate || null,
+              boardActions: [],
+              hasBoardAction: false
+            }],
+            base_requirement_id: 2 + index,
+            provider_type_id: 1,
+            id: 2 + index,
+            severity: 1,
+            status: isActive ? 'valid' : 'required'
+          });
+        } else {
+          // Handle DEA registration
+          requirements.push({
+            requirement_type: 'REGISTRATION',
+            type: 'DEA Registration',
+            name: 'DEA Registration',
+            description: 'Valid DEA registration',
+            is_required: true,
+            is_valid: Boolean(license.number && isActive),
+            validation_message: isActive 
+              ? `Valid DEA registration found: ${license.number}`
+              : `DEA registration ${license.number} is not active`,
+            validation_rules: {
+              required: true,
+              status: 'active'
+            },
+            details: [{
+              type: license.type || 'DEA Registration',
+              issuer: 'DEA',
+              number: license.number,
+              status: license.status || 'Unknown',
+              expirationDate: license.expirationDate || null,
+              boardActions: [],
+              hasBoardAction: false,
+              additionalInfo: license.additionalInfo // Pass through additionalInfo directly
+            }],
+            base_requirement_id: 9,
+            provider_type_id: 1,
+            id: 9,
+            severity: 1,
+            status: isActive ? 'valid' : 'required'
+          });
+        }
       }
     });
   }

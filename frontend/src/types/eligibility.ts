@@ -30,7 +30,7 @@ export interface ValidationDetail {
   boardActions?: string[];
   hasBoardAction?: boolean;
   additionalInfo?: {
-    deaSchedules?: string[];
+    deaSchedules?: string;
     licenseState?: string;
   };
   details?: {
@@ -42,7 +42,7 @@ export interface ValidationDetail {
     boardActions?: string[];
     hasBoardAction?: boolean;
     additionalInfo?: {
-      deaSchedules?: string[];
+      deaSchedules?: string;
       licenseState?: string;
     };
   };
@@ -81,6 +81,10 @@ export interface License {
   expirationDate?: string;
   code?: string;
   state?: string;
+  additionalInfo?: {
+    deaSchedules?: string;
+    licenseState?: string;
+  };
 }
 
 export interface NPIValidation {
