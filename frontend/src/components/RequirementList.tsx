@@ -102,7 +102,8 @@ const RequirementList: React.FC<RequirementListProps> = ({ requirements, require
     }
 
     // Handle licenses (State License, DEA)
-    if (normalizedType === 'dea_registration' || normalizedType.includes('dea')) {
+    if (normalizedType === 'dea_registration' || normalizedType.includes('dea') || 
+        (normalizedType === 'registration' && (detailData.issuer === 'DEA' || detailData.type?.includes('DEA')))) {
       const deaDetail = {
         issuer: detailData.issuer || 'Unknown',
         type: detailData.type || 'Unknown',
@@ -111,11 +112,11 @@ const RequirementList: React.FC<RequirementListProps> = ({ requirements, require
         expirationDate: detailData.expirationDate || null,
         boardActions: detailData.boardActions || [],
         hasBoardAction: Boolean(detailData.hasBoardAction),
-        additionalInfo: detailData.additionalInfo // Pass through additionalInfo directly
+        additionalInfo: detailData.additionalInfo
       } as LicenseDetailType;
 
       // Debug logging for DEA details
-      console.group('DEA Detail Debug');
+      console.group('DEA Detail Debug in RequirementList');
       console.log('DEA Detail:', deaDetail);
       console.log('Additional Info:', deaDetail.additionalInfo);
       console.groupEnd();

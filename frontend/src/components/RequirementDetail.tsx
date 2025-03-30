@@ -19,11 +19,24 @@ import { formatExpirationDate } from '../utils/eligibilityProcessor';
 import { CheckCircle, Cancel } from '@mui/icons-material';
 import { generateDetailTestId } from '../utils/testUtils';
 
-const isDEARequirement = (type: string): boolean => {
+const isDEARequirement = (type: string, detail?: DetailType): boolean => {
   const normalizedType = type.toLowerCase();
-  return normalizedType === 'controlled_substance_registration' || 
-         normalizedType === 'dea_registration' ||
-         normalizedType.includes('dea');
+  const isTypeMatch = normalizedType === 'controlled_substance_registration' || 
+                     normalizedType === 'dea_registration' ||
+                     normalizedType.includes('dea') ||
+                     normalizedType === 'registration';
+
+  if (!isTypeMatch) return false;
+
+  // If we have a detail object, check additional fields
+  if (detail) {
+    const licenseDetail = detail as LicenseDetailType;
+    return licenseDetail.issuer === 'DEA' || 
+           licenseDetail.type?.includes('DEA') ||
+           licenseDetail.type?.includes('Drug Enforcement Administration');
+  }
+
+  return isTypeMatch;
 };
 
 export interface BaseDetailType {
@@ -239,17 +252,14 @@ export const RequirementDetail: React.FC<RequirementDetailProps> = ({
 }) => {
   // Debug logging for the entire detail object
   console.group('RequirementDetail Debug');
-  console.log('Detail:', {
-    type: requirementType,
-    detail: detail,
-    boardActions: (detail as BoardActionDetailType)?.boardActions || [],
-    hasBoardAction: (detail as BoardActionDetailType)?.hasBoardAction || false
-  });
+  console.log('Detail:', detail);
+  console.log('Is DEA:', isDEARequirement(requirementType, detail));
+  console.log('Additional Info:', (detail as LicenseDetailType).additionalInfo);
   console.groupEnd();
 
   const normalizedType = (requirementType || '').toLowerCase().replace(/\s+/g, '_');
   const isNPIRequirement = normalizedType === 'national_provider_identifier' || normalizedType === 'npi';
-  const isDEA = isDEARequirement(requirementType);
+  const isDEA = isDEARequirement(requirementType, detail);
   
   // Handle NPI display
   if ((detail as NPIDetailType).isNPI) {
@@ -294,13 +304,6 @@ export const RequirementDetail: React.FC<RequirementDetailProps> = ({
 
   const licenseDetail = detail as LicenseDetailType;
   const isActive = licenseDetail.status?.toLowerCase() === 'active';
-
-  // Debug logging for DEA details
-  console.group('DEA Detail Debug');
-  console.log('Is DEA:', isDEA);
-  console.log('Requirement Type:', requirementType);
-  console.log('Additional Info:', licenseDetail.additionalInfo);
-  console.groupEnd();
 
   return (
     <DetailWrapper isMultiple={isMultiple} index={index} totalItems={totalItems}>
