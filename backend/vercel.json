@@ -11,6 +11,14 @@
     ],
     "routes": [
       {
+        "src": "/health",
+        "dest": "vercel_app.py"
+      },
+      {
+        "src": "/api/eligibility/(.*)",
+        "dest": "vercel_app.py"
+      },
+      {
         "src": "/api/(.*)",
         "dest": "vercel_app.py"
       },
