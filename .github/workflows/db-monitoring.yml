@@ -1,0 +1,41 @@
+name: Database Monitoring
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Run every 6 hours
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        pip install psycopg2-binary
+    
+    - name: Run database health check
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      run: |
+        python scripts/db_health_check.py
+    
+    - name: Create backup
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      run: |
+        python scripts/db_backup.py
+    
+    - name: Upload backup artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: db-backup
+        path: backups/
+        retention-days: 5 
