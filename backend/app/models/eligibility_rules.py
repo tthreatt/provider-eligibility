@@ -1,20 +1,26 @@
-from sqlalchemy import Column, Integer, String, Boolean, JSON, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, JSON, ForeignKey, DateTime, Sequence
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from app.db.base_class import Base
+from app.core.database import Base
+import json
 
 class ValidationRule(Base):
     __tablename__ = "validation_rules"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, Sequence('validation_rule_id_seq'), primary_key=True, index=True)
     rule_type = Column(String, unique=True, index=True)
-    # SQLite doesn't have native JSON type, store as string
-    rules = Column(String)  # Will store JSON as string
+    rules = Column(String)  # Store as JSON string instead of PostgreSQL JSON type
+
+    def set_rules(self, rules_dict):
+        self.rules = json.dumps(rules_dict)
+
+    def get_rules(self):
+        return json.loads(self.rules) if self.rules else {}
 
 class BaseRequirement(Base):
     __tablename__ = "base_requirements"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, Sequence('base_requirement_id_seq'), primary_key=True, index=True)
     requirement_type = Column(String, index=True)
     name = Column(String)
     description = Column(String)
@@ -26,7 +32,7 @@ class BaseRequirement(Base):
 class ProviderType(Base):
     __tablename__ = "provider_types"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, Sequence('provider_type_id_seq'), primary_key=True, index=True)
     code = Column(String, unique=True, index=True)
     name = Column(String)
 
@@ -35,18 +41,17 @@ class ProviderType(Base):
 class ProviderRequirement(Base):
     __tablename__ = "provider_requirements"
 
-    id = Column(Integer, primary_key=True, index=True)
-    # The field should match what's in your database
-    type = Column(String)  # This is probably what you have instead of requirement_type
+    id = Column(Integer, Sequence('provider_requirement_id_seq'), primary_key=True, index=True)
+    type = Column(String)
     name = Column(String)
     description = Column(String)
     is_required = Column(Boolean, default=True)
     provider_type_id = Column(Integer, ForeignKey("provider_types.id"))
     base_requirement_id = Column(Integer, ForeignKey("base_requirements.id"))
-    override_validation_rules = Column(String)  # JSON string
+    override_validation_rules = Column(JSON)  # Using PostgreSQL's native JSON type
     
     provider_type = relationship("ProviderType", back_populates="requirements")
-    base_requirement = relationship("BaseRequirement")
+    base_requirement = relationship("BaseRequirement", back_populates="provider_requirements")
 
 # Initial data for seeding the database
 INITIAL_PROVIDER_TYPES = [

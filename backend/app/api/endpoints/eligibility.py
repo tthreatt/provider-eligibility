@@ -4,7 +4,7 @@ from typing import Dict, Any, List
 from datetime import datetime
 import json
 
-from app.db.session import get_db
+from app.core.database import get_db
 from app.models.provider import Provider
 from app.models.eligibility_rules import (
     ProviderType as ProviderTypeModel,

@@ -8,8 +8,8 @@ class Settings(BaseSettings):
     ENDPOINT_URL: str
     API_KEY: str
     
-    # Database (you might want to add this if you're using a database)
-    DATABASE_URL: str = "sqlite:///./sql_app.db"  # default value
+    # Database configuration
+    DATABASE_URL: str = "postgresql://neondb_owner:npg_GBn3ouWv6rjm@ep-tiny-mud-a4ulscia-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require"
     
     class Config:
         env_file = ".env"
