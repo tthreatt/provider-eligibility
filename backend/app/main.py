@@ -4,7 +4,6 @@ from app.core.config import settings
 from app.api.api import api_router
 from app.routes.provider import router as provider_router
 from app.core.database import Base, engine, get_db
-from app.db.init_db import seed_provider_types, seed_validation_rules
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -30,46 +29,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize database tables
-@app.on_event("startup")
-async def startup_event():
-    print("Starting application startup...")
-    try:
-        print("Creating database session...")
-        # Create a new session for database operations
-        db = Session(engine)
-        try:
-            print("Ensuring public schema exists...")
-            # Ensure public schema exists
-            db.execute(text("CREATE SCHEMA IF NOT EXISTS public"))
-            db.commit()
-            
-            print("Creating database tables...")
-            # Create all tables
-            Base.metadata.create_all(bind=engine)
-            
-            print("Seeding validation rules...")
-            # Seed validation rules first
-            seed_validation_rules(db)
-            
-            print("Seeding provider types...")
-            # Then seed provider types
-            seed_provider_types(db)
-            
-            print("Committing changes...")
-            db.commit()
-            print("Startup completed successfully!")
-        except Exception as e:
-            print(f"Error during database operations: {str(e)}")
-            db.rollback()
-            raise
-        finally:
-            print("Closing database session...")
-            db.close()
-    except Exception as e:
-        print(f"Critical error during startup: {str(e)}")
-        raise
 
 # Health check endpoint
 @app.get("/health")
