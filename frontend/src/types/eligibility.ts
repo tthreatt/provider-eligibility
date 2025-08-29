@@ -81,9 +81,23 @@ export interface License {
   expirationDate?: string;
   code?: string;
   state?: string;
+  firstName?: string;
+  lastName?: string;
+  hasBoardAction?: boolean;
+  issueDate?: string;
+  origin?: string;
+  primarySourceCheckedDate?: string;
+  primarySourceLastVerifiedDate?: string;
+  screenshotId?: string;
+  source?: string;
+  boardActions?: string[];
   additionalInfo?: {
     deaSchedules?: string;
     licenseState?: string;
+    mocStatus?: string;
+    renewalDate?: string;
+    durationType?: string;
+    reverificationDate?: string;
   };
 }
 
@@ -99,6 +113,14 @@ export interface NPIValidation {
     enumerationDate?: string;
     gender?: string;
   };
+  providerName?: string;
+  npi?: string;
+  updateDate?: string;
+  providerType?: string;
+  licenses?: Array<License>;
+  entityType?: string;
+  enumerationDate?: string;
+  rawApiResponse?: any;
 }
 
 export interface ProcessedEligibility {
@@ -106,4 +128,5 @@ export interface ProcessedEligibility {
   requirements: Requirement[];
   rawValidation: NPIValidation;
   providerType?: string;
-} 
+  validationMessages?: string[];
+}
