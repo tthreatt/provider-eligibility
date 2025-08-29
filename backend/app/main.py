@@ -15,6 +15,16 @@ from app.models.eligibility_rules import (
     ProviderRequirement
 )
 from app.models.provider import Provider
+from app.db.init_db import init_db
+
+# Initialize database tables and seed data
+db = Session(engine)
+try:
+    init_db(db)
+except Exception as e:
+    print(f"Error initializing database: {e}")
+finally:
+    db.close()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

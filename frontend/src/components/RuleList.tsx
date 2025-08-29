@@ -10,17 +10,19 @@ import type { BaseRequirement, Requirement } from '@/types/eligibility'
 
 // Define the order of requirements
 const REQUIREMENT_ORDER = [
-  "National Provider Identifier",
-  "Medical Degree",
-  "State License",
-  "DEA Registration",
+  "Background Check",
   "Board Certification",
   "Continuing Education",
-  "Malpractice Insurance",
-  "Background Check",
-  "Work History",
+  "DEA Registration",
   "Immunization Records",
-  "Professional References"
+  "Malpractice Insurance",
+  "Medical Degree",
+  "National Provider Identifier",
+  "Professional Degree",
+  "Professional References",
+  "Residency",
+  "State License",
+  "Work History"
 ];
 
 // Types matching EditRuleDialog's internal types

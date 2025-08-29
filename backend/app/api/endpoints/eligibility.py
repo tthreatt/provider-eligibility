@@ -85,6 +85,7 @@ async def get_provider_types(db: Session = Depends(get_db)):
         
         result = []
         for provider_type in provider_types:
+            print(f"\nProcessing provider type: {provider_type.name}")
             provider_data = {
                 "id": provider_type.id,
                 "code": provider_type.code,
@@ -93,34 +94,47 @@ async def get_provider_types(db: Session = Depends(get_db)):
             }
             
             for requirement in provider_type.requirements:
+                print(f"\nProcessing requirement: {requirement.id}")
                 base_req = requirement.base_requirement
                 
-                # Debug: Print the base requirement attributes
+                # Debug: Print requirement details
+                print(f"Requirement details:")
+                print(f"  ID: {requirement.id}")
+                print(f"  Base requirement: {base_req}")
                 if base_req:
-                    print("Base Requirement Attributes:", dir(base_req))
-                    print("Base Requirement Dict:", base_req.__dict__)
+                    print(f"  Base requirement details:")
+                    print(f"    Type: {base_req.requirement_type}")
+                    print(f"    Name: {base_req.name}")
+                    print(f"    Description: {base_req.description}")
+                    print(f"    Validation rule: {base_req.validation_rule}")
                 
+                # Get fields from base requirement
                 req_data = {
                     "id": requirement.id,
-                    # Use getattr with default values to avoid AttributeError
-                    "requirement_type": getattr(base_req, 'requirement_type', '') if base_req else "",
-                    "name": getattr(base_req, 'name', '') if base_req else "",
-                    "description": getattr(base_req, 'description', '') if base_req else "",
+                    "requirement_type": base_req.requirement_type if base_req else "",
+                    "name": base_req.name if base_req else "",
+                    "description": base_req.description if base_req else "",
                     "is_required": requirement.is_required,
                     "base_requirement_id": requirement.base_requirement_id,
                     "provider_type_id": requirement.provider_type_id,
                     "validation_rules": {}
                 }
                 
+                # Try to get validation rules from requirement first
                 if requirement.override_validation_rules:
                     try:
+                        print(f"  Using override validation rules")
                         req_data["validation_rules"] = json.loads(requirement.override_validation_rules)
-                    except json.JSONDecodeError:
+                    except json.JSONDecodeError as e:
+                        print(f"  Error parsing override rules: {e}")
                         req_data["validation_rules"] = {}
+                # Fall back to base requirement validation rules
                 elif base_req and base_req.validation_rule:
                     try:
+                        print(f"  Using base validation rules")
                         req_data["validation_rules"] = json.loads(base_req.validation_rule.rules)
-                    except json.JSONDecodeError:
+                    except json.JSONDecodeError as e:
+                        print(f"  Error parsing base rules: {e}")
                         req_data["validation_rules"] = {}
                 
                 provider_data["requirements"].append(req_data)
@@ -130,7 +144,10 @@ async def get_provider_types(db: Session = Depends(get_db)):
         return result
         
     except Exception as e:
+        import traceback
         print(f"Error in get_provider_types: {str(e)}")
+        print(f"Error type: {type(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Get a single provider type by ID
