@@ -1,16 +1,19 @@
 from fastapi import APIRouter, HTTPException
-from app.services.provider_trust import ProviderTrustAPI
-from typing import List
 from pydantic import BaseModel
+
+from app.services.provider_trust import ProviderTrustAPI
 
 router = APIRouter()
 provider_trust = ProviderTrustAPI()
 
+
 class NPIRequest(BaseModel):
     npi: str
 
+
 class NPIsRequest(BaseModel):
-    npis: List[str]
+    npis: list[str]
+
 
 @router.post("/auth")
 async def authenticate():
@@ -18,7 +21,8 @@ async def authenticate():
         result = await provider_trust.authenticate()
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 @router.post("/search-profile")
 async def search_profile(request: NPIRequest):
@@ -26,4 +30,4 @@ async def search_profile(request: NPIRequest):
         result = await provider_trust.search_profile(request.npi)
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e)) from e

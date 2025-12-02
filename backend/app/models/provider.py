@@ -1,13 +1,14 @@
-from typing import List
-from pydantic import BaseModel
-from sqlalchemy import Boolean, Column, DateTime, String, Integer, ForeignKey, JSON
-from sqlalchemy.orm import relationship
 from datetime import datetime
+
+from pydantic import BaseModel
+from sqlalchemy import JSON, Column, DateTime, Integer, String
 
 from app.db.base_class import Base
 
+
 class ProviderSearchRequest(BaseModel):
-    npis: List[str]
+    npis: list[str]
+
 
 class Provider(Base):
     __tablename__ = "providers"

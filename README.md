@@ -130,6 +130,11 @@ cd backend
 pytest
 ```
 
+Run tests with coverage:
+```bash
+pytest --cov=app --cov-report=html
+```
+
 ### Frontend Tests
 ```bash
 cd frontend
@@ -137,6 +142,62 @@ npm test
 # or
 yarn test
 ```
+
+Run tests with coverage:
+```bash
+npm run test:coverage
+```
+
+## 🔍 Code Quality
+
+### Linting
+
+#### Frontend
+```bash
+cd frontend
+npm run lint          # Check for linting errors
+npm run lint:fix      # Auto-fix linting errors
+```
+
+#### Backend
+```bash
+cd backend
+ruff check .         # Check for linting errors
+ruff check --fix .   # Auto-fix linting errors
+```
+
+### Formatting
+
+#### Frontend
+```bash
+cd frontend
+npm run format        # Format all files
+npm run format:check  # Check formatting without making changes
+```
+
+#### Backend
+```bash
+cd backend
+ruff format .        # Format all files
+ruff format --check . # Check formatting without making changes
+```
+
+### Type Checking
+
+#### Frontend
+```bash
+cd frontend
+npm run type-check   # Run TypeScript type checking
+```
+
+## 🔄 Continuous Integration
+
+This project uses GitHub Actions for CI/CD. The CI pipeline runs on every push and pull request and checks:
+
+- **Frontend**: ESLint, Prettier formatting, TypeScript type checking, and Jest tests
+- **Backend**: Ruff linting, Ruff formatting, and pytest tests
+
+All checks must pass before code can be merged. You can view the CI status in the GitHub Actions tab.
 
 ## 🚀 Deployment
 

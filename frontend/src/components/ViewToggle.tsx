@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { ToggleButton, ToggleButtonGroup, styled } from "@mui/material"
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings"
-import SearchIcon from "@mui/icons-material/Search"
+import { ToggleButton, ToggleButtonGroup, styled } from "@mui/material";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import SearchIcon from "@mui/icons-material/Search";
 
 interface ViewToggleProps {
-  currentView: "admin" | "search"
-  onToggle: (view: "admin" | "search") => void
+  currentView: "admin" | "search";
+  onToggle: (view: "admin" | "search") => void;
 }
 
 const StyledToggleButton = styled(ToggleButton)(({ theme }) => ({
@@ -21,17 +21,26 @@ const StyledToggleButton = styled(ToggleButton)(({ theme }) => ({
       color: "#FFF",
     },
   },
-}))
+}));
 
 export function ViewToggle({ currentView, onToggle }: ViewToggleProps) {
-  const handleChange = (event: React.MouseEvent<HTMLElement>, newView: "admin" | "search") => {
+  const handleChange = (
+    event: React.MouseEvent<HTMLElement>,
+    newView: "admin" | "search"
+  ) => {
     if (newView !== null) {
-      onToggle(newView)
+      onToggle(newView);
     }
-  }
+  };
 
   return (
-    <ToggleButtonGroup value={currentView} exclusive onChange={handleChange} aria-label="view toggle" sx={{ mb: 4 }}>
+    <ToggleButtonGroup
+      value={currentView}
+      exclusive
+      onChange={handleChange}
+      aria-label="view toggle"
+      sx={{ mb: 4 }}
+    >
       <StyledToggleButton value="admin" aria-label="admin view">
         <AdminPanelSettingsIcon sx={{ mr: 1 }} />
         Admin View
@@ -41,6 +50,5 @@ export function ViewToggle({ currentView, onToggle }: ViewToggleProps) {
         Search View
       </StyledToggleButton>
     </ToggleButtonGroup>
-  )
+  );
 }
-

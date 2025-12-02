@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
+import type React from "react";
+import { useState, useEffect } from "react";
 import {
   Paper,
   Typography,
@@ -16,10 +16,16 @@ import {
   Box,
   Alert,
   CircularProgress,
-} from "@mui/material"
-import type { BaseRequirement, FrontendRequirements } from "@/types/providerTypes"
-import { requirementTypeToUIKey } from "@/types/providerTypes"
-import { getBaseRequirements, createProviderType } from "@/services/eligibilityApi"
+} from "@mui/material";
+import type {
+  BaseRequirement,
+  FrontendRequirements,
+} from "@/types/providerTypes";
+import { requirementTypeToUIKey } from "@/types/providerTypes";
+import {
+  getBaseRequirements,
+  createProviderType,
+} from "@/services/eligibilityApi";
 
 // Define the order of requirements
 const REQUIREMENT_ORDER = [
@@ -33,7 +39,7 @@ const REQUIREMENT_ORDER = [
   "Background Check",
   "Work History",
   "Immunization Records",
-  "Professional References"
+  "Professional References",
 ];
 
 const providerTypeOptions = [
@@ -67,30 +73,33 @@ export function AddRuleForm({ onRuleAdded }: { onRuleAdded: () => void }) {
     selectedRequirements: {},
     error: null,
     success: false,
-    loading: false
+    loading: false,
   });
 
   useEffect(() => {
     const fetchBaseRequirements = async () => {
-      setState(prev => ({ ...prev, loading: true, error: null }));
+      setState((prev) => ({ ...prev, loading: true, error: null }));
       try {
         const requirements = await getBaseRequirements();
-        const initialSelectedState = requirements.reduce((acc, req) => {
-          acc[req.id] = false;
-          return acc;
-        }, {} as Record<number, boolean>);
+        const initialSelectedState = requirements.reduce(
+          (acc, req) => {
+            acc[req.id] = false;
+            return acc;
+          },
+          {} as Record<number, boolean>
+        );
 
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           baseRequirements: requirements,
           selectedRequirements: initialSelectedState,
-          loading: false
+          loading: false,
         }));
       } catch (err) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
-          error: 'Failed to fetch requirements',
-          loading: false
+          error: "Failed to fetch requirements",
+          loading: false,
         }));
       }
     };
@@ -100,13 +109,18 @@ export function AddRuleForm({ onRuleAdded }: { onRuleAdded: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setState(prev => ({ ...prev, error: null, success: false, loading: true }));
+    setState((prev) => ({
+      ...prev,
+      error: null,
+      success: false,
+      loading: true,
+    }));
 
     if (!state.providerTypeName) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        error: 'Please select a provider type',
-        loading: false
+        error: "Please select a provider type",
+        loading: false,
       }));
       return;
     }
@@ -123,38 +137,46 @@ export function AddRuleForm({ onRuleAdded }: { onRuleAdded: () => void }) {
 
       await createProviderType({
         name: state.providerTypeName,
-        code: state.providerTypeName.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
-        requirements
+        code: state.providerTypeName.toLowerCase().replace(/[^a-z0-9]+/g, "_"),
+        requirements,
       });
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         providerTypeName: "",
-        selectedRequirements: prev.baseRequirements.reduce((acc, req) => {
-          acc[req.id] = false;
-          return acc;
-        }, {} as Record<number, boolean>),
+        selectedRequirements: prev.baseRequirements.reduce(
+          (acc, req) => {
+            acc[req.id] = false;
+            return acc;
+          },
+          {} as Record<number, boolean>
+        ),
         success: true,
-        loading: false
+        loading: false,
       }));
 
       onRuleAdded();
     } catch (err) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        error: err instanceof Error ? err.message : 'An error occurred',
-        loading: false
+        error: err instanceof Error ? err.message : "An error occurred",
+        loading: false,
       }));
     }
   };
 
   const getRequirementByName = (name: string): BaseRequirement | undefined => {
-    return state.baseRequirements.find(req => req.name === name);
+    return state.baseRequirements.find((req) => req.name === name);
   };
 
   if (state.loading && state.baseRequirements.length === 0) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="200px"
+      >
         <CircularProgress />
       </Box>
     );
@@ -162,9 +184,17 @@ export function AddRuleForm({ onRuleAdded }: { onRuleAdded: () => void }) {
 
   return (
     <Paper elevation={3} sx={{ p: 4, mb: 4 }}>
-      {state.error && <Alert severity="error" sx={{ mb: 2 }}>{state.error}</Alert>}
-      {state.success && <Alert severity="success" sx={{ mb: 2 }}>Provider type added successfully!</Alert>}
-      
+      {state.error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {state.error}
+        </Alert>
+      )}
+      {state.success && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          Provider type added successfully!
+        </Alert>
+      )}
+
       <Typography variant="h6" gutterBottom>
         Add New Provider Type
       </Typography>
@@ -177,7 +207,12 @@ export function AddRuleForm({ onRuleAdded }: { onRuleAdded: () => void }) {
             id="provider-type"
             value={state.providerTypeName}
             label="Provider Type Name"
-            onChange={(e) => setState(prev => ({ ...prev, providerTypeName: e.target.value }))}
+            onChange={(e) =>
+              setState((prev) => ({
+                ...prev,
+                providerTypeName: e.target.value,
+              }))
+            }
             required
           >
             <MenuItem value="">
@@ -195,7 +230,7 @@ export function AddRuleForm({ onRuleAdded }: { onRuleAdded: () => void }) {
           Requirements
         </Typography>
         <FormGroup sx={{ mb: 3 }}>
-          {REQUIREMENT_ORDER.map(reqName => {
+          {REQUIREMENT_ORDER.map((reqName) => {
             const requirement = getRequirementByName(reqName);
             if (!requirement) return null;
 
@@ -204,14 +239,18 @@ export function AddRuleForm({ onRuleAdded }: { onRuleAdded: () => void }) {
                 key={requirement.id}
                 control={
                   <Checkbox
-                    checked={state.selectedRequirements[requirement.id] || false}
-                    onChange={(e) => setState(prev => ({
-                      ...prev,
-                      selectedRequirements: {
-                        ...prev.selectedRequirements,
-                        [requirement.id]: e.target.checked
-                      }
-                    }))}
+                    checked={
+                      state.selectedRequirements[requirement.id] || false
+                    }
+                    onChange={(e) =>
+                      setState((prev) => ({
+                        ...prev,
+                        selectedRequirements: {
+                          ...prev.selectedRequirements,
+                          [requirement.id]: e.target.checked,
+                        },
+                      }))
+                    }
                     disabled={state.loading}
                   />
                 }
@@ -229,9 +268,9 @@ export function AddRuleForm({ onRuleAdded }: { onRuleAdded: () => void }) {
         </FormGroup>
 
         <Box>
-          <Button 
-            type="submit" 
-            variant="contained" 
+          <Button
+            type="submit"
+            variant="contained"
             sx={{ fontWeight: 700 }}
             disabled={!state.providerTypeName || state.loading}
           >
@@ -242,4 +281,3 @@ export function AddRuleForm({ onRuleAdded }: { onRuleAdded: () => void }) {
     </Paper>
   );
 }
-

@@ -1,8 +1,10 @@
-from app.main import app
-from app.core.database import Base, engine, get_db
-from app.db.init_db import init_db
-from sqlalchemy.orm import Session
 import logging
+
+from sqlalchemy.orm import Session
+
+from app.core.database import engine
+from app.db.init_db import init_db
+from app.main import app
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

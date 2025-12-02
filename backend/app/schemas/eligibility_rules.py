@@ -1,5 +1,7 @@
+from typing import Optional
+
 from pydantic import BaseModel
-from typing import List, Dict, Optional, Union, Literal
+
 
 # Match frontend's ValidationRules interface
 class ValidationRules(BaseModel):
@@ -22,8 +24,9 @@ class ValidationRules(BaseModel):
     minimum_count: Optional[int] = None
     hours_required: Optional[int] = None
     minimum_coverage: Optional[int] = None
-    required_vaccines: Optional[List[str]] = None
+    required_vaccines: Optional[list[str]] = None
     expiration_window_months: Optional[int] = None
+
 
 # Match frontend's BaseRequirement interface
 class BaseRequirement(BaseModel):
@@ -36,6 +39,7 @@ class BaseRequirement(BaseModel):
     class Config:
         from_attributes = True
 
+
 # Match frontend's BackendRequirement interface
 class RequirementBase(BaseModel):
     requirement_type: str
@@ -47,8 +51,10 @@ class RequirementBase(BaseModel):
     provider_type_id: Optional[int] = None
     id: Optional[int] = None
 
+
 class RequirementCreate(RequirementBase):
     pass
+
 
 class Requirement(RequirementBase):
     id: int
@@ -58,20 +64,24 @@ class Requirement(RequirementBase):
     class Config:
         from_attributes = True
 
+
 # Match frontend's BackendProviderType interface
 class ProviderTypeBase(BaseModel):
     code: str
     name: str
 
+
 class ProviderTypeCreate(ProviderTypeBase):
-    requirements: List[RequirementBase]
+    requirements: list[RequirementBase]
+
 
 class ProviderType(ProviderTypeBase):
     id: int
-    requirements: List[Requirement]
+    requirements: list[Requirement]
 
     class Config:
         from_attributes = True
+
 
 # Add requirement categories matching frontend
 REQUIREMENT_CATEGORIES = {
@@ -79,7 +89,7 @@ REQUIREMENT_CATEGORIES = {
     "education": ["medicalDegree", "residency", "continuingEducation"],
     "licensing": ["stateLicense", "boardCertification", "deaRegistration"],
     "verification": ["backgroundCheck", "workHistory", "professionalReferences"],
-    "compliance": ["immunizationRecords", "malpracticeInsurance"]
+    "compliance": ["immunizationRecords", "malpracticeInsurance"],
 }
 
 # Add requirement type to UI key mapping matching frontend
@@ -96,7 +106,7 @@ REQUIREMENT_TYPE_TO_UI_KEY = {
     "registration": "deaRegistration",
     "degree": "medicalDegree",
     "residency": "residency",
-    "work_history": "workHistory"
+    "work_history": "workHistory",
 }
 
 # Add base requirement IDs matching frontend
@@ -112,16 +122,13 @@ BASE_REQUIREMENT_IDS = {
     "deaRegistration": 9,
     "medicalDegree": 11,
     "residency": 13,
-    "workHistory": 14
+    "workHistory": 14,
 }
 
 # Add default validation rules matching frontend
 DEFAULT_VALIDATION_RULES = {
     "nationalProviderId": {"must_be_verified": True},
-    "stateLicense": {
-        "must_be_active": True,
-        "must_be_unrestricted": True
-    },
+    "stateLicense": {"must_be_active": True, "must_be_unrestricted": True},
     "boardCertification": {"must_be_active": True},
     "backgroundCheck": {"must_be_completed": True},
     "immunizationRecords": {"must_be_up_to_date": True},
@@ -131,8 +138,5 @@ DEFAULT_VALIDATION_RULES = {
     "deaRegistration": {"must_be_active": True},
     "medicalDegree": {"must_be_verified": True},
     "residency": {"must_be_completed": True},
-    "workHistory": {
-        "must_be_verified": True,
-        "verification_period_years": 5
-    }
+    "workHistory": {"must_be_verified": True, "verification_period_years": 5},
 }

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import { useUser } from "@clerk/nextjs";
 
 export default function UserProfile() {
@@ -9,4 +9,4 @@ export default function UserProfile() {
   }
 
   return <div>Hello, {user.firstName}!</div>;
-} 
+}

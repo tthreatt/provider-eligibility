@@ -31,7 +31,7 @@ export interface License {
 }
 
 export interface NPIValidationResponse {
-  'NPI Validation': {
+  "NPI Validation": {
     providerName: string;
     npi: string;
     updateDate: string;
@@ -39,4 +39,4 @@ export interface NPIValidationResponse {
   };
   Licenses: License[];
   rawApiResponse: any; // Keep this for backward compatibility
-} 
+}
