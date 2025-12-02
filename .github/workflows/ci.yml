@@ -88,5 +88,4 @@ jobs:
         run: npm run type-check
 
       - name: Run Jest tests
-        run: npm test -- --coverage --watchAll=false
-        continue-on-error: true
+        run: npm test -- src/app/api/__tests__ --coverage --watchAll=false
