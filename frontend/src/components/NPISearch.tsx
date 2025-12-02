@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import { useAuth } from "@clerk/nextjs"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
 import {
   Paper,
   Typography,
@@ -12,50 +12,50 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-} from "@mui/material"
-import CheckCircleIcon from "@mui/icons-material/CheckCircle"
-import CancelIcon from "@mui/icons-material/Cancel"
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import { SearchForm } from './SearchForm'
-import RequirementList from './RequirementList'
-import { ProcessedEligibility } from '../types/eligibility'
-import { processEligibilityData } from '../utils/eligibilityProcessor'
+} from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { SearchForm } from "./SearchForm";
+import RequirementList from "./RequirementList";
+import { ProcessedEligibility } from "../types/eligibility";
+import { processEligibilityData } from "../utils/eligibilityProcessor";
 
 // Provider service functions
 const fetchProviderData = async (npi: string, token: string | null) => {
   // Use Next.js API route instead of calling backend directly
-  const response = await fetch('/api/fetch-provider-data', {
-    method: 'POST',
+  const response = await fetch("/api/fetch-provider-data", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ npi }),
-    credentials: 'include', // Include cookies for Clerk auth
+    credentials: "include", // Include cookies for Clerk auth
   });
-  
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Failed to fetch provider data');
+    throw new Error(errorData.error || "Failed to fetch provider data");
   }
-  
+
   return response.json();
 };
 
 const fetchEligibilityRules = async (token: string | null) => {
   // Use Next.js API route instead of calling backend directly
-  const response = await fetch('/api/eligibility/rules', {
-    method: 'GET',
+  const response = await fetch("/api/eligibility/rules", {
+    method: "GET",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
-    credentials: 'include', // Include cookies for Clerk auth
+    credentials: "include", // Include cookies for Clerk auth
   });
-  
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Failed to fetch eligibility rules');
+    throw new Error(errorData.error || "Failed to fetch eligibility rules");
   }
-  
+
   return response.json();
 };
 
@@ -69,7 +69,7 @@ const REQUIREMENT_ORDER = [
   "Malpractice Insurance",
   "Background Check",
   "Work History",
-  "Professional References"
+  "Professional References",
 ];
 
 interface NPISearchProps {
@@ -77,56 +77,61 @@ interface NPISearchProps {
 }
 
 export function NPISearch({ loading = false }: NPISearchProps) {
-  const [npi, setNpi] = useState("")
-  const [searchResult, setSearchResult] = useState<ProcessedEligibility | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isSearching, setIsSearching] = useState(false)
-  const { getToken } = useAuth()
+  const [npi, setNpi] = useState("");
+  const [searchResult, setSearchResult] = useState<ProcessedEligibility | null>(
+    null
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const { getToken } = useAuth();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsSearching(true);
-    
+
     try {
       const token = await getToken();
-      
+
       // First fetch provider data
       const rawProviderData = await fetchProviderData(npi, token);
-      
+
       // Then fetch eligibility rules
       const eligibilityRules = await fetchEligibilityRules(token);
 
-      console.log('Raw provider data:', rawProviderData);
-      console.log('Eligibility rules:', eligibilityRules);
+      console.log("Raw provider data:", rawProviderData);
+      console.log("Eligibility rules:", eligibilityRules);
 
       // Use processEligibilityData to properly structure the data
       const processedResult = processEligibilityData(rawProviderData);
 
       setSearchResult(processedResult);
-
     } catch (err) {
-      console.error('Search error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error("Search error:", err);
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsSearching(false);
     }
   };
 
   // Debug logging only in development
-  if (process.env.NODE_ENV === 'development') {
   useEffect(() => {
-    if (searchResult?.rawValidation?.npiDetails) {
-      console.group('Provider Data Structure');
-      console.log('NPI Validation:', searchResult.rawValidation.npiDetails);
-      console.log('NPI Validation Licenses:', searchResult.rawValidation.npiDetails.licenses);
+    if (
+      process.env.NODE_ENV === "development" &&
+      searchResult?.rawValidation?.npiDetails
+    ) {
+      console.group("Provider Data Structure");
+      console.log("NPI Validation:", searchResult.rawValidation.npiDetails);
+      console.log(
+        "NPI Validation Licenses:",
+        searchResult.rawValidation.npiDetails.licenses
+      );
       console.groupEnd();
     }
   }, [searchResult]);
-  }
 
   return (
-    <Box sx={{ p: 4, bgcolor: 'background.paper', borderRadius: 1 }}>
+    <Box sx={{ p: 4, bgcolor: "background.paper", borderRadius: 1 }}>
       <SearchForm
         onSubmit={handleSearch}
         npi={npi}
@@ -140,44 +145,75 @@ export function NPISearch({ loading = false }: NPISearchProps) {
           icon={searchResult.isEligible ? <CheckCircleIcon /> : <CancelIcon />}
           sx={{
             mt: 3,
-            '& .MuiAlert-message': {
-              width: '100%'
-            }
+            "& .MuiAlert-message": {
+              width: "100%",
+            },
           }}
         >
-          <AlertTitle sx={{ fontSize: '1.2rem', fontWeight: 'medium' }}>
-            {searchResult.isEligible ? "Provider is Eligible" : "Provider is Not Eligible"}
+          <AlertTitle sx={{ fontSize: "1.2rem", fontWeight: "medium" }}>
+            {searchResult.isEligible
+              ? "Provider is Eligible"
+              : "Provider is Not Eligible"}
           </AlertTitle>
-          
+
           {/* Provider Basic Info */}
           <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" sx={{ color: 'text.primary', mb: 1, fontWeight: 'medium' }}>
-              Provider: {searchResult.rawValidation.npiDetails?.providerName || 
-                         searchResult.rawValidation.providerName || 
-                         searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.providerName || 
-                         'N/A'}
-            </Typography>
-            
-            <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
-              NPI: {searchResult.rawValidation.npiDetails?.npi || 
-                    searchResult.rawValidation.npi || 
-                    searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.npi || 
-                    'N/A'}
-            </Typography>
-            
-            <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
-              Provider Type: {searchResult.rawValidation.npiDetails?.providerType || 
-                              searchResult.rawValidation.providerType || 
-                              searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.licenses?.[0]?.code?.split(' - ')?.[1] || 
-                              'N/A'}
-            </Typography>
-            
-            <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
-              Entity Type: {searchResult.rawValidation.npiDetails?.entityType || 
-                            searchResult.rawValidation.entityType || 
-                            searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.entityType || 
-                            'N/A'}
-            </Typography>
+            {/* Helper to get nested NPI Validation data */}
+            {(() => {
+              const npiValidation =
+                searchResult.rawValidation.rawApiResponse?.rawApiResponse?.[
+                  "NPI Validation"
+                ] ||
+                searchResult.rawValidation.rawApiResponse?.["NPI Validation"] ||
+                {};
+              return (
+                <>
+                  <Typography
+                    variant="h6"
+                    sx={{ color: "text.primary", mb: 1, fontWeight: "medium" }}
+                  >
+                    Provider:{" "}
+                    {searchResult.rawValidation.npiDetails?.providerName ||
+                      searchResult.rawValidation.providerName ||
+                      npiValidation.providerName ||
+                      "N/A"}
+                  </Typography>
+
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ color: "text.secondary" }}
+                  >
+                    NPI:{" "}
+                    {searchResult.rawValidation.npiDetails?.npi ||
+                      searchResult.rawValidation.npi ||
+                      npiValidation.npi ||
+                      "N/A"}
+                  </Typography>
+
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ color: "text.secondary" }}
+                  >
+                    Provider Type:{" "}
+                    {searchResult.rawValidation.npiDetails?.providerType ||
+                      searchResult.rawValidation.providerType ||
+                      npiValidation.licenses?.[0]?.code?.split(" - ")?.[1] ||
+                      "N/A"}
+                  </Typography>
+
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ color: "text.secondary" }}
+                  >
+                    Entity Type:{" "}
+                    {searchResult.rawValidation.npiDetails?.entityType ||
+                      searchResult.rawValidation.entityType ||
+                      npiValidation.entityType ||
+                      "N/A"}
+                  </Typography>
+                </>
+              );
+            })()}
           </Box>
 
           {/* License Requirements */}
@@ -188,50 +224,103 @@ export function NPISearch({ loading = false }: NPISearchProps) {
 
           {/* Contact Information */}
           <Box sx={{ mt: 3, mb: 2 }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>Contact Information</Typography>
-            
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>Mailing Address:</Typography>
-              <Typography variant="body2">
-                {searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.mailingAddress || 'N/A'}
-              </Typography>
-              <Typography variant="body2">
-                Phone: {searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.mailingPhone || 'N/A'}
-              </Typography>
-            </Box>
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              Contact Information
+            </Typography>
+            {(() => {
+              // Handle nested rawApiResponse structure
+              const innerRawApiResponse =
+                searchResult.rawValidation.rawApiResponse?.rawApiResponse ||
+                searchResult.rawValidation.rawApiResponse ||
+                {};
+              const npiValidation = innerRawApiResponse["NPI Validation"] || {};
 
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>Practice Address:</Typography>
-              <Typography variant="body2">
-                {searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.practiceAddress || 'N/A'}
-              </Typography>
-              <Typography variant="body2">
-                Phone: {searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.practicePhone || 'N/A'}
-              </Typography>
-            </Box>
+              return (
+                <>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{ fontWeight: "medium" }}
+                    >
+                      Mailing Address:
+                    </Typography>
+                    <Typography variant="body2">
+                      {npiValidation.mailingAddress || "N/A"}
+                    </Typography>
+                    <Typography variant="body2">
+                      Phone: {npiValidation.mailingPhone || "N/A"}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{ fontWeight: "medium" }}
+                    >
+                      Practice Address:
+                    </Typography>
+                    <Typography variant="body2">
+                      {npiValidation.practiceAddress || "N/A"}
+                    </Typography>
+                    <Typography variant="body2">
+                      Phone: {npiValidation.practicePhone || "N/A"}
+                    </Typography>
+                  </Box>
+                </>
+              );
+            })()}
           </Box>
 
           {/* Verification Status */}
           <Box sx={{ mt: 3 }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>Verification Status</Typography>
-            <Typography variant="body2" color={searchResult.rawValidation.rawApiResponse?.Exclusions?.length ? 'error.main' : 'success.main'}>
-              Exclusions: {searchResult.rawValidation.rawApiResponse?.Exclusions?.length ? 'Found' : 'None'}
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              Verification Status
             </Typography>
-            <Typography variant="body2" color={searchResult.rawValidation.rawApiResponse?.['CMS Preclusion List']?.length ? 'error.main' : 'success.main'}>
-              Preclusions: {searchResult.rawValidation.rawApiResponse?.['CMS Preclusion List']?.length ? 'Found' : 'None'}
-            </Typography>
-            <Typography variant="body2" color={Object.keys(searchResult.rawValidation.rawApiResponse?.['Opt Out'] || {}).length ? 'error.main' : 'success.main'}>
-              Opt Out: {Object.keys(searchResult.rawValidation.rawApiResponse?.['Opt Out'] || {}).length ? 'Yes' : 'No'}
-            </Typography>
+            {(() => {
+              // Handle nested rawApiResponse structure
+              const innerRawApiResponse =
+                searchResult.rawValidation.rawApiResponse?.rawApiResponse ||
+                searchResult.rawValidation.rawApiResponse ||
+                {};
+              const exclusions = innerRawApiResponse.Exclusions || [];
+              const preclusions =
+                innerRawApiResponse["CMS Preclusion List"] || [];
+              const optOut = innerRawApiResponse["Opt Out"] || {};
+
+              return (
+                <>
+                  <Typography
+                    variant="body2"
+                    color={exclusions.length ? "error.main" : "success.main"}
+                  >
+                    Exclusions: {exclusions.length ? "Found" : "None"}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color={preclusions.length ? "error.main" : "success.main"}
+                  >
+                    Preclusions: {preclusions.length ? "Found" : "None"}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color={
+                      Object.keys(optOut).length ? "error.main" : "success.main"
+                    }
+                  >
+                    Opt Out: {Object.keys(optOut).length ? "Yes" : "No"}
+                  </Typography>
+                </>
+              );
+            })()}
           </Box>
 
           {/* Last Updated */}
           <Box sx={{ mt: 3 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
               Last Updated:
             </Typography>
             <Typography variant="body2">
-              {searchResult.rawValidation.npiDetails?.updateDate || 'N/A'}
+              {searchResult.rawValidation.npiDetails?.updateDate || "N/A"}
             </Typography>
           </Box>
         </Alert>
@@ -247,23 +336,21 @@ export function NPISearch({ loading = false }: NPISearchProps) {
             <Typography variant="h6">Raw API Response</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Paper 
-              sx={{ 
-                p: 2, 
-                bgcolor: '#f5f5f5',
-                maxHeight: '400px',
-                overflow: 'auto',
-                '& pre': {
+            <Paper
+              sx={{
+                p: 2,
+                bgcolor: "#f5f5f5",
+                maxHeight: "400px",
+                overflow: "auto",
+                "& pre": {
                   margin: 0,
-                  whiteSpace: 'pre-wrap',
-                  wordWrap: 'break-word',
-                  overflowY: 'auto'
-                }
+                  whiteSpace: "pre-wrap",
+                  wordWrap: "break-word",
+                  overflowY: "auto",
+                },
               }}
             >
-              <pre>
-                {JSON.stringify(searchResult.rawValidation, null, 2)}
-              </pre>
+              <pre>{JSON.stringify(searchResult.rawValidation, null, 2)}</pre>
             </Paper>
           </AccordionDetails>
         </Accordion>
@@ -275,6 +362,5 @@ export function NPISearch({ loading = false }: NPISearchProps) {
         </Alert>
       )}
     </Box>
-  )
+  );
 }
-
