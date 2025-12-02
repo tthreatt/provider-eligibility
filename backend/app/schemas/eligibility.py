@@ -1,5 +1,7 @@
+from typing import Any, Optional
+
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
+
 
 class ValidationRuleSchema(BaseModel):
     must_be_active: Optional[bool] = None
@@ -8,16 +10,17 @@ class ValidationRuleSchema(BaseModel):
     license_type: Optional[str] = None
     certification_type: Optional[str] = None
     registration_type: Optional[str] = None
-    degree_types: Optional[List[str]] = None
-    allowed_levels: Optional[List[str]] = None
-    required_for_specialties: Optional[List[str]] = None
+    degree_types: Optional[list[str]] = None
+    allowed_levels: Optional[list[str]] = None
+    required_for_specialties: Optional[list[str]] = None
+
 
 class RequirementBase(BaseModel):
     requirement_type: str = Field(default="")
     name: str = Field(default="")
     description: str = Field(default="")
     is_required: bool = True
-    validation_rules: Dict[str, Any] = Field(default_factory=dict)
+    validation_rules: dict[str, Any] = Field(default_factory=dict)
     base_requirement_id: Optional[int] = None
     provider_type_id: Optional[int] = None
     id: Optional[int] = None
@@ -25,8 +28,10 @@ class RequirementBase(BaseModel):
     class Config:
         from_attributes = True
 
+
 class RequirementCreate(RequirementBase):
     pass
+
 
 class Requirement(BaseModel):
     id: int
@@ -36,30 +41,35 @@ class Requirement(BaseModel):
     is_required: bool
     base_requirement_id: int
     provider_type_id: int
-    validation_rules: Optional[Dict[str, Any]] = None
+    validation_rules: Optional[dict[str, Any]] = None
 
     class Config:
         from_attributes = True
         populate_by_name = True
 
+
 class ProviderTypeBase(BaseModel):
     code: str
     name: str
 
+
 class ProviderTypeCreate(ProviderTypeBase):
-    requirements: List[RequirementCreate]
+    requirements: list[RequirementCreate]
+
 
 class ProviderType(BaseModel):
     id: int
     code: str
     name: str
-    requirements: List[RequirementBase]
+    requirements: list[RequirementBase]
 
     class Config:
         from_attributes = True
 
+
 class EligibilityCheck(BaseModel):
     npi: str
+
 
 class EligibilityRequirements(BaseModel):
     stateLicense: bool
@@ -72,19 +82,23 @@ class EligibilityRequirements(BaseModel):
     workHistory: bool
     providerType: str
 
+
 class NPIValidation(BaseModel):
     providerName: str
     npi: str
     updateDate: str
 
+
 class RawApiResponseInner(BaseModel):
     NPI_Validation: NPIValidation
-    Licenses: List[Dict[str, Any]]
+    Licenses: list[dict[str, Any]]
+
 
 class RawApiResponse(BaseModel):
     rawApiResponse: RawApiResponseInner
 
+
 class EligibilityResponse(BaseModel):
     isEligible: bool
-    requirements: Dict[str, bool]
-    rawApiResponse: Dict[str, Any] 
+    requirements: dict[str, bool]
+    rawApiResponse: dict[str, Any]

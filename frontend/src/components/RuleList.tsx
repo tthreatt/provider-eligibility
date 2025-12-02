@@ -1,12 +1,30 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Paper, List, ListItem, IconButton, Typography, Grid, Chip, Box, Alert, Button, CircularProgress, Snackbar } from "@mui/material"
-import EditIcon from "@mui/icons-material/Edit"
-import DeleteIcon from "@mui/icons-material/Delete"
-import { EditRuleDialog } from "./EditRuleDialog"
-import { fetchProviderRules, fetchBaseRequirements, deleteProviderRule, API_ROUTES } from '@/config/api'
-import type { BaseRequirement, Requirement } from '@/types/eligibility'
+import { useState, useEffect } from "react";
+import {
+  Paper,
+  List,
+  ListItem,
+  IconButton,
+  Typography,
+  Grid,
+  Chip,
+  Box,
+  Alert,
+  Button,
+  CircularProgress,
+  Snackbar,
+} from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { EditRuleDialog } from "./EditRuleDialog";
+import {
+  fetchProviderRules,
+  fetchBaseRequirements,
+  deleteProviderRule,
+  API_ROUTES,
+} from "@/config/api";
+import type { BaseRequirement, Requirement } from "@/types/eligibility";
 
 // Define the order of requirements
 const REQUIREMENT_ORDER = [
@@ -22,7 +40,7 @@ const REQUIREMENT_ORDER = [
   "Professional References",
   "Residency",
   "State License",
-  "Work History"
+  "Work History",
 ];
 
 // Types matching EditRuleDialog's internal types
@@ -55,16 +73,17 @@ export function RuleList() {
     baseRequirements: [],
     isLoading: true,
     error: null,
-    successMessage: null
+    successMessage: null,
   });
-  const [editingProviderType, setEditingProviderType] = useState<DialogProviderType | null>(null);
+  const [editingProviderType, setEditingProviderType] =
+    useState<DialogProviderType | null>(null);
 
   const loadData = async () => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
       const [providerTypesData, baseRequirements] = await Promise.all([
         fetchProviderRules(),
-        fetchBaseRequirements()
+        fetchBaseRequirements(),
       ]);
 
       // Convert backend provider types to match EditRuleDialog's expected format
@@ -73,23 +92,23 @@ export function RuleList() {
         id: pt.id.toString(), // Convert number id to string
         requirements: pt.requirements.map((req: any) => ({
           ...req,
-          provider_type_id: parseInt(pt.id)
-        }))
+          provider_type_id: parseInt(pt.id),
+        })),
       }));
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         providerTypes,
         baseRequirements,
-        isLoading: false
+        isLoading: false,
       }));
     } catch (err) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        error: err instanceof Error ? err.message : 'An error occurred',
-        isLoading: false
+        error: err instanceof Error ? err.message : "An error occurred",
+        isLoading: false,
       }));
-      console.error('Fetch error:', err);
+      console.error("Fetch error:", err);
     }
   };
 
@@ -100,15 +119,16 @@ export function RuleList() {
   const handleDeleteProviderType = async (id: string) => {
     try {
       await deleteProviderRule(id);
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        successMessage: 'Provider type deleted successfully'
+        successMessage: "Provider type deleted successfully",
       }));
       loadData(); // Refresh the list
     } catch (err) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        error: err instanceof Error ? err.message : 'Failed to delete provider type'
+        error:
+          err instanceof Error ? err.message : "Failed to delete provider type",
       }));
     }
   };
@@ -121,50 +141,63 @@ export function RuleList() {
     setEditingProviderType(null);
   };
 
-  const handleSaveProviderType = async (updatedProviderType: DialogProviderType) => {
+  const handleSaveProviderType = async (
+    updatedProviderType: DialogProviderType
+  ) => {
     try {
-      const response = await fetch(`${API_ROUTES.ELIGIBILITY_RULES}/${updatedProviderType.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...updatedProviderType,
-          id: parseInt(updatedProviderType.id) // Convert back to number for API
-        })
-      });
+      const response = await fetch(
+        `${API_ROUTES.ELIGIBILITY_RULES}/${updatedProviderType.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...updatedProviderType,
+            id: parseInt(updatedProviderType.id), // Convert back to number for API
+          }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to update provider type');
+        throw new Error("Failed to update provider type");
       }
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        successMessage: `Successfully updated ${updatedProviderType.name}`
+        successMessage: `Successfully updated ${updatedProviderType.name}`,
       }));
       loadData(); // Refresh the list
     } catch (err) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        error: err instanceof Error ? err.message : 'Failed to update provider type'
+        error:
+          err instanceof Error ? err.message : "Failed to update provider type",
       }));
     }
   };
 
   const clearSuccessMessage = () => {
-    setState(prev => ({ ...prev, successMessage: null }));
+    setState((prev) => ({ ...prev, successMessage: null }));
   };
 
   const clearError = () => {
-    setState(prev => ({ ...prev, error: null }));
+    setState((prev) => ({ ...prev, error: null }));
   };
 
   // Helper function to get requirement status
-  const getRequirementStatus = (type: DialogProviderType, requirementName: string) => {
-    const requirement = type.requirements.find(r => r.name === requirementName);
+  const getRequirementStatus = (
+    type: DialogProviderType,
+    requirementName: string
+  ) => {
+    const requirement = type.requirements.find(
+      (r) => r.name === requirementName
+    );
     return {
       isRequired: requirement?.is_required || false,
-      requirement: requirement || state.baseRequirements.find(r => r.name === requirementName)
+      requirement:
+        requirement ||
+        state.baseRequirements.find((r) => r.name === requirementName),
     };
   };
 
@@ -172,8 +205,8 @@ export function RuleList() {
     <>
       <Paper elevation={3} sx={{ mt: 3 }}>
         {state.error && (
-          <Alert 
-            severity="error" 
+          <Alert
+            severity="error"
             sx={{ m: 2 }}
             onClose={clearError}
             action={
@@ -185,9 +218,9 @@ export function RuleList() {
             {state.error}
           </Alert>
         )}
-        
+
         {state.isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
             <CircularProgress />
           </Box>
         ) : (
@@ -200,9 +233,12 @@ export function RuleList() {
                   </Typography>
                   <Grid container spacing={2} sx={{ mt: 1 }}>
                     {REQUIREMENT_ORDER.map((reqName) => {
-                      const { isRequired, requirement } = getRequirementStatus(type, reqName);
+                      const { isRequired, requirement } = getRequirementStatus(
+                        type,
+                        reqName
+                      );
                       if (!requirement) return null;
-                      
+
                       return (
                         <Grid item key={requirement.requirement_type}>
                           <Chip
@@ -216,16 +252,16 @@ export function RuleList() {
                   </Grid>
                 </Box>
                 <Box>
-                  <IconButton 
-                    edge="end" 
-                    aria-label="edit" 
+                  <IconButton
+                    edge="end"
+                    aria-label="edit"
                     onClick={() => handleEditProviderType(type)}
                   >
                     <EditIcon />
                   </IconButton>
-                  <IconButton 
-                    edge="end" 
-                    aria-label="delete" 
+                  <IconButton
+                    edge="end"
+                    aria-label="delete"
                     onClick={() => handleDeleteProviderType(type.id)}
                   >
                     <DeleteIcon />
@@ -241,12 +277,12 @@ export function RuleList() {
         open={!!state.successMessage}
         autoHideDuration={6000}
         onClose={clearSuccessMessage}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert 
-          onClose={clearSuccessMessage} 
-          severity="success" 
-          sx={{ width: '100%' }}
+        <Alert
+          onClose={clearSuccessMessage}
+          severity="success"
+          sx={{ width: "100%" }}
         >
           {state.successMessage}
         </Alert>
@@ -263,4 +299,3 @@ export function RuleList() {
     </>
   );
 }
-

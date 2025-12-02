@@ -1,21 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import settings
-from app.api.api import api_router
-from app.routes.provider import router as provider_router
-from app.core.database import Base, engine, get_db
-from sqlalchemy.orm import Session
 from sqlalchemy import text
+from sqlalchemy.orm import Session
+
+from app.api.api import api_router
+from app.core.config import settings
+from app.core.database import engine
+from app.db.init_db import init_db
 
 # Import all models to ensure they are registered with SQLAlchemy
-from app.models.eligibility_rules import (
-    ProviderType,
-    ValidationRule,
-    BaseRequirement,
-    ProviderRequirement
-)
-from app.models.provider import Provider
-from app.db.init_db import init_db
+from app.routes.provider import router as provider_router
 
 # Initialize database tables and seed data
 db = Session(engine)
@@ -40,6 +34,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Health check endpoint
 @app.get("/health")
 async def health_check():
@@ -51,6 +46,7 @@ async def health_check():
         return {"status": "healthy", "database": "connected"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
+
 
 # Include API routes
 app.include_router(api_router, prefix="/api")

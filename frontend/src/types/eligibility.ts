@@ -58,7 +58,7 @@ export interface Requirement {
   is_required: boolean;
   is_valid: boolean;
   validation_message?: string;
-  status: 'valid' | 'invalid' | 'required' | 'optional';
+  status: "valid" | "invalid" | "required" | "optional";
   details: ValidationDetail[];
   base_requirement_id: number;
   provider_type_id: number;

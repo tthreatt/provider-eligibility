@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   Paper,
@@ -11,15 +11,15 @@ import {
   Button,
   Box,
   Alert,
-} from "@mui/material"
-import { useState } from "react"
+} from "@mui/material";
+import { useState } from "react";
 
 interface Integration {
-  id: string
-  name: string
-  enabled: boolean
-  apiKey?: string
-  endpoint?: string
+  id: string;
+  name: string;
+  enabled: boolean;
+  apiKey?: string;
+  endpoint?: string;
 }
 
 const defaultIntegrations: Integration[] = [
@@ -43,34 +43,41 @@ const defaultIntegrations: Integration[] = [
     apiKey: "",
     endpoint: "",
   },
-]
+];
 
 export function Integrations() {
-  const [integrations, setIntegrations] = useState<Integration[]>(defaultIntegrations)
-  const [saved, setSaved] = useState(false)
+  const [integrations, setIntegrations] =
+    useState<Integration[]>(defaultIntegrations);
+  const [saved, setSaved] = useState(false);
 
   const handleToggle = (id: string) => {
     setIntegrations(
       integrations.map((integration) =>
-        integration.id === id ? { ...integration, enabled: !integration.enabled } : integration
+        integration.id === id
+          ? { ...integration, enabled: !integration.enabled }
+          : integration
       )
-    )
-  }
+    );
+  };
 
-  const handleInputChange = (id: string, field: 'apiKey' | 'endpoint', value: string) => {
+  const handleInputChange = (
+    id: string,
+    field: "apiKey" | "endpoint",
+    value: string
+  ) => {
     setIntegrations(
       integrations.map((integration) =>
         integration.id === id ? { ...integration, [field]: value } : integration
       )
-    )
-  }
+    );
+  };
 
   const handleSave = () => {
     // Here you would typically save to your backend
-    console.log('Saving integrations:', integrations)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
-  }
+    console.log("Saving integrations:", integrations);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
 
   return (
     <Paper elevation={3} sx={{ p: 4 }}>
@@ -92,19 +99,21 @@ export function Integrations() {
           <ListItem
             key={integration.id}
             sx={{
-              flexDirection: 'column',
-              alignItems: 'stretch',
+              flexDirection: "column",
+              alignItems: "stretch",
               border: 1,
-              borderColor: 'divider',
+              borderColor: "divider",
               borderRadius: 1,
               mb: 2,
               p: 2,
             }}
           >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
+            >
               <ListItemText
                 primary={integration.name}
-                secondary={`Status: ${integration.enabled ? 'Active' : 'Inactive'}`}
+                secondary={`Status: ${integration.enabled ? "Active" : "Inactive"}`}
               />
               <Switch
                 edge="end"
@@ -114,20 +123,32 @@ export function Integrations() {
             </Box>
 
             {integration.enabled && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {integration.apiKey !== undefined && (
                   <TextField
                     label="API Key"
                     type="password"
                     value={integration.apiKey}
-                    onChange={(e) => handleInputChange(integration.id, 'apiKey', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange(
+                        integration.id,
+                        "apiKey",
+                        e.target.value
+                      )
+                    }
                     fullWidth
                   />
                 )}
                 <TextField
                   label="Endpoint URL"
                   value={integration.endpoint}
-                  onChange={(e) => handleInputChange(integration.id, 'endpoint', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange(
+                      integration.id,
+                      "endpoint",
+                      e.target.value
+                    )
+                  }
                   fullWidth
                 />
               </Box>
@@ -142,5 +163,5 @@ export function Integrations() {
         </Button>
       </Box>
     </Paper>
-  )
-} 
+  );
+}

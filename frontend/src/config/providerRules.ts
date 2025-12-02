@@ -1,5 +1,5 @@
-import type { ProviderType } from '../types/defaultProviderTypes';
-    
+import type { ProviderType } from "../types/defaultProviderTypes";
+
 export const providerTypes: ProviderType[] = [
   {
     id: "1",
@@ -169,4 +169,4 @@ export const providerTypes: ProviderType[] = [
       workHistory: true,
     },
   },
-]; 
+];

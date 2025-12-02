@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -13,8 +13,8 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  Box
-} from "@mui/material"
+  Box,
+} from "@mui/material";
 
 // Define the order of requirements
 const REQUIREMENT_ORDER = [
@@ -28,7 +28,7 @@ const REQUIREMENT_ORDER = [
   "Background Check",
   "Work History",
   "Immunization Records",
-  "Professional References"
+  "Professional References",
 ];
 
 // Types for our requirements handling
@@ -72,13 +72,18 @@ interface DialogState {
  * Displays and manages provider type requirements by comparing all possible requirements
  * against the provider type's current requirements.
  */
-export function EditRuleDialog({ providerType, isOpen, onClose, onSave }: EditRuleDialogProps) {
+export function EditRuleDialog({
+  providerType,
+  isOpen,
+  onClose,
+  onSave,
+}: EditRuleDialogProps) {
   const [dialogState, setDialogState] = useState<DialogState>({
     allRequirements: [],
     currentProviderType: providerType,
     isLoading: true,
     isSaving: false,
-    error: null
+    error: null,
   });
 
   /**
@@ -95,45 +100,57 @@ export function EditRuleDialog({ providerType, isOpen, onClose, onSave }: EditRu
    */
   const loadRequirements = async () => {
     try {
-      setDialogState(prev => ({ ...prev, isLoading: true, error: null }));
+      setDialogState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       // Fetch all base requirements using Next.js API route
-      const baseReqResponse = await fetch('/api/eligibility/base-requirements', {
-        credentials: 'include',
-      });
+      const baseReqResponse = await fetch(
+        "/api/eligibility/base-requirements",
+        {
+          credentials: "include",
+        }
+      );
       if (!baseReqResponse.ok) {
         const errorData = await baseReqResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to fetch base requirements');
+        throw new Error(errorData.error || "Failed to fetch base requirements");
       }
       const baseRequirements: BaseRequirement[] = await baseReqResponse.json();
 
       // Fetch current provider type requirements using Next.js API route
-      const providerReqResponse = await fetch(`/api/eligibility/rules/${providerType.id}`, {
-        credentials: 'include',
-      });
+      const providerReqResponse = await fetch(
+        `/api/eligibility/rules/${providerType.id}`,
+        {
+          credentials: "include",
+        }
+      );
       if (!providerReqResponse.ok) {
         const errorData = await providerReqResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to fetch provider type requirements');
+        throw new Error(
+          errorData.error || "Failed to fetch provider type requirements"
+        );
       }
-      const currentProviderType: ProviderType = await providerReqResponse.json();
+      const currentProviderType: ProviderType =
+        await providerReqResponse.json();
 
-      console.log('Loaded requirements:', {
+      console.log("Loaded requirements:", {
         baseRequirements,
-        currentProviderType
+        currentProviderType,
       });
 
-      setDialogState(prev => ({
+      setDialogState((prev) => ({
         ...prev,
         allRequirements: baseRequirements,
         currentProviderType,
-        isLoading: false
+        isLoading: false,
       }));
     } catch (error) {
-      console.error('Error loading requirements:', error);
-      setDialogState(prev => ({
+      console.error("Error loading requirements:", error);
+      setDialogState((prev) => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to load requirements'
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to load requirements",
       }));
     }
   };
@@ -143,7 +160,7 @@ export function EditRuleDialog({ providerType, isOpen, onClose, onSave }: EditRu
    */
   const isRequirementRequired = (requirementType: string): boolean => {
     return dialogState.currentProviderType.requirements.some(
-      req => req.requirement_type === requirementType && req.is_required
+      (req) => req.requirement_type === requirementType && req.is_required
     );
   };
 
@@ -151,7 +168,7 @@ export function EditRuleDialog({ providerType, isOpen, onClose, onSave }: EditRu
    * Get requirement by name
    */
   const getRequirementByName = (name: string): BaseRequirement | undefined => {
-    return dialogState.allRequirements.find(req => req.name === name);
+    return dialogState.allRequirements.find((req) => req.name === name);
   };
 
   /**
@@ -159,33 +176,35 @@ export function EditRuleDialog({ providerType, isOpen, onClose, onSave }: EditRu
    * Updates or adds the requirement to the provider type's requirements
    */
   const handleRequirementChange = (baseRequirement: BaseRequirement) => {
-    const currentValue = isRequirementRequired(baseRequirement.requirement_type);
-    
-    console.log('Changing requirement:', {
+    const currentValue = isRequirementRequired(
+      baseRequirement.requirement_type
+    );
+
+    console.log("Changing requirement:", {
       type: baseRequirement.requirement_type,
       currentValue,
-      newValue: !currentValue
+      newValue: !currentValue,
     });
 
-    setDialogState(prev => {
+    setDialogState((prev) => {
       // Find existing requirement or create new one
       const updatedRequirements = [...prev.currentProviderType.requirements];
       const existingIndex = updatedRequirements.findIndex(
-        req => req.requirement_type === baseRequirement.requirement_type
+        (req) => req.requirement_type === baseRequirement.requirement_type
       );
 
       if (existingIndex >= 0) {
         // Update existing requirement
         updatedRequirements[existingIndex] = {
           ...updatedRequirements[existingIndex],
-          is_required: !currentValue
+          is_required: !currentValue,
         };
       } else {
         // Add new requirement
         updatedRequirements.push({
           ...baseRequirement,
           is_required: true,
-          provider_type_id: parseInt(prev.currentProviderType.id)
+          provider_type_id: parseInt(prev.currentProviderType.id),
         });
       }
 
@@ -193,8 +212,8 @@ export function EditRuleDialog({ providerType, isOpen, onClose, onSave }: EditRu
         ...prev,
         currentProviderType: {
           ...prev.currentProviderType,
-          requirements: updatedRequirements
-        }
+          requirements: updatedRequirements,
+        },
       };
     });
   };
@@ -205,35 +224,40 @@ export function EditRuleDialog({ providerType, isOpen, onClose, onSave }: EditRu
    */
   const handleSave = async () => {
     try {
-      setDialogState(prev => ({ ...prev, isSaving: true, error: null }));
-      
-      // Ensure all base requirements are included in the save
-      const completeRequirements = dialogState.allRequirements.map(baseReq => {
-        const existingReq = dialogState.currentProviderType.requirements.find(
-          req => req.requirement_type === baseReq.requirement_type
-        );
+      setDialogState((prev) => ({ ...prev, isSaving: true, error: null }));
 
-        return existingReq || {
-          ...baseReq,
-          is_required: false,
-          provider_type_id: parseInt(dialogState.currentProviderType.id)
-        };
-      });
+      // Ensure all base requirements are included in the save
+      const completeRequirements = dialogState.allRequirements.map(
+        (baseReq) => {
+          const existingReq = dialogState.currentProviderType.requirements.find(
+            (req) => req.requirement_type === baseReq.requirement_type
+          );
+
+          return (
+            existingReq || {
+              ...baseReq,
+              is_required: false,
+              provider_type_id: parseInt(dialogState.currentProviderType.id),
+            }
+          );
+        }
+      );
 
       const updatedProviderType = {
         ...dialogState.currentProviderType,
-        requirements: completeRequirements
+        requirements: completeRequirements,
       };
 
-      console.log('Saving provider type:', updatedProviderType);
+      console.log("Saving provider type:", updatedProviderType);
       onSave(updatedProviderType);
       handleClose();
     } catch (error) {
-      console.error('Error saving provider type:', error);
-      setDialogState(prev => ({
+      console.error("Error saving provider type:", error);
+      setDialogState((prev) => ({
         ...prev,
         isSaving: false,
-        error: error instanceof Error ? error.message : 'Failed to save changes'
+        error:
+          error instanceof Error ? error.message : "Failed to save changes",
       }));
     }
   };
@@ -244,7 +268,7 @@ export function EditRuleDialog({ providerType, isOpen, onClose, onSave }: EditRu
       currentProviderType: providerType,
       isLoading: false,
       isSaving: false,
-      error: null
+      error: null,
     });
     onClose();
   };
@@ -254,7 +278,7 @@ export function EditRuleDialog({ providerType, isOpen, onClose, onSave }: EditRu
     return (
       <Dialog open={isOpen} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogContent>
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
             <CircularProgress />
           </Box>
         </DialogContent>
@@ -270,7 +294,7 @@ export function EditRuleDialog({ providerType, isOpen, onClose, onSave }: EditRu
           {dialogState.currentProviderType.name}
         </Typography>
         <FormGroup>
-          {REQUIREMENT_ORDER.map(reqName => {
+          {REQUIREMENT_ORDER.map((reqName) => {
             const requirement = getRequirementByName(reqName);
             if (!requirement) return null;
 
@@ -279,7 +303,9 @@ export function EditRuleDialog({ providerType, isOpen, onClose, onSave }: EditRu
                 key={requirement.requirement_type}
                 control={
                   <Checkbox
-                    checked={isRequirementRequired(requirement.requirement_type)}
+                    checked={isRequirementRequired(
+                      requirement.requirement_type
+                    )}
                     onChange={() => handleRequirementChange(requirement)}
                     disabled={dialogState.isSaving}
                   />
@@ -298,28 +324,31 @@ export function EditRuleDialog({ providerType, isOpen, onClose, onSave }: EditRu
         </FormGroup>
       </DialogContent>
       {dialogState.error && (
-        <Alert 
-          severity="error" 
+        <Alert
+          severity="error"
           sx={{ mx: 3, mb: 2 }}
-          onClose={() => setDialogState(prev => ({ ...prev, error: null }))}
+          onClose={() => setDialogState((prev) => ({ ...prev, error: null }))}
         >
           {dialogState.error}
         </Alert>
       )}
       <DialogActions>
-        <Button onClick={handleClose} variant="outlined" disabled={dialogState.isSaving}>
+        <Button
+          onClick={handleClose}
+          variant="outlined"
+          disabled={dialogState.isSaving}
+        >
           Cancel
         </Button>
-        <Button 
-          onClick={handleSave} 
-          variant="contained" 
+        <Button
+          onClick={handleSave}
+          variant="contained"
           disabled={dialogState.isSaving}
           sx={{ fontWeight: 700 }}
         >
-          {dialogState.isSaving ? 'Saving...' : 'Save'}
+          {dialogState.isSaving ? "Saving..." : "Save"}
         </Button>
       </DialogActions>
     </Dialog>
   );
 }
-

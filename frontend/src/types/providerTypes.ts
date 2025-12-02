@@ -72,20 +72,22 @@ export interface FrontendProviderType {
 }
 
 // Mapping between requirement types and frontend keys
-export const requirementTypeToUIKey: { [key: string]: keyof FrontendRequirements } = {
-  'identifier': 'nationalProviderId',
-  'license': 'stateLicense',
-  'certification': 'boardCertification',
-  'cpr_certification': 'cprCertification',
-  'background_check': 'backgroundCheck',
-  'immunization': 'immunizationRecords',
-  'professional_references': 'professionalReferences',
-  'continuing_education': 'continuingEducation',
-  'insurance': 'malpracticeInsurance',
-  'registration': 'deaRegistration',
-  'degree': 'medicalDegree',
-  'residency': 'residency',
-  'work_history': 'workHistory'
+export const requirementTypeToUIKey: {
+  [key: string]: keyof FrontendRequirements;
+} = {
+  identifier: "nationalProviderId",
+  license: "stateLicense",
+  certification: "boardCertification",
+  cpr_certification: "cprCertification",
+  background_check: "backgroundCheck",
+  immunization: "immunizationRecords",
+  professional_references: "professionalReferences",
+  continuing_education: "continuingEducation",
+  insurance: "malpracticeInsurance",
+  registration: "deaRegistration",
+  degree: "medicalDegree",
+  residency: "residency",
+  work_history: "workHistory",
 };
 
 // Base requirement IDs from database
@@ -101,7 +103,7 @@ export const BASE_REQUIREMENT_IDS = {
   deaRegistration: 9,
   medicalDegree: 11,
   residency: 13,
-  workHistory: 14
+  workHistory: 14,
 } as const;
 
 // Frontend UI format
@@ -115,11 +117,11 @@ export interface ProviderTypeUI {
 
 // Requirement Categories for UI organization
 export const requirementCategories = {
-  identification: ['nationalProviderId'],
-  education: ['medicalDegree', 'residency', 'continuingEducation'],
-  licensing: ['stateLicense', 'boardCertification', 'deaRegistration'],
-  verification: ['backgroundCheck', 'workHistory', 'professionalReferences'],
-  compliance: ['immunizationRecords', 'malpracticeInsurance']
+  identification: ["nationalProviderId"],
+  education: ["medicalDegree", "residency", "continuingEducation"],
+  licensing: ["stateLicense", "boardCertification", "deaRegistration"],
+  verification: ["backgroundCheck", "workHistory", "professionalReferences"],
+  compliance: ["immunizationRecords", "malpracticeInsurance"],
 } as const;
 
 export type RequirementCategory = keyof typeof requirementCategories;
@@ -127,49 +129,49 @@ export type RequirementCategory = keyof typeof requirementCategories;
 // Default validation rules for each requirement type
 export const defaultValidationRules: { [key: string]: ValidationRules } = {
   nationalProviderId: {
-    must_be_verified: true
+    must_be_verified: true,
   },
   stateLicense: {
     must_be_active: true,
-    must_be_unrestricted: true
+    must_be_unrestricted: true,
   },
   boardCertification: {
-    must_be_active: true
+    must_be_active: true,
   },
   backgroundCheck: {
-    must_be_completed: true
+    must_be_completed: true,
   },
   immunizationRecords: {
-    must_be_up_to_date: true
+    must_be_up_to_date: true,
   },
   professionalReferences: {
-    must_be_verified: true
+    must_be_verified: true,
   },
   continuingEducation: {
-    must_be_completed: true
+    must_be_completed: true,
   },
   malpracticeInsurance: {
-    must_be_active: true
+    must_be_active: true,
   },
   deaRegistration: {
-    must_be_active: true
+    must_be_active: true,
   },
   medicalDegree: {
-    must_be_verified: true
+    must_be_verified: true,
   },
   residency: {
-    must_be_completed: true
+    must_be_completed: true,
   },
   workHistory: {
     must_be_verified: true,
-    verification_period_years: 5
-  }
+    verification_period_years: 5,
+  },
 };
 
 // Utility function to generate code from name
 export function generateProviderTypeCode(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_') // Replace non-alphanumeric with underscore
-    .replace(/^_+|_+$/g, ''); // Remove leading/trailing underscores
-} 
+    .replace(/[^a-z0-9]+/g, "_") // Replace non-alphanumeric with underscore
+    .replace(/^_+|_+$/g, ""); // Remove leading/trailing underscores
+}

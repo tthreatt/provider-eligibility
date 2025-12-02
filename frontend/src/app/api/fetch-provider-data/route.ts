@@ -69,49 +69,15 @@ function checkStateLicense(data: any): boolean {
   const innerRawApiResponse =
     data?.rawApiResponse?.rawApiResponse || data?.rawApiResponse || {};
   const licenses = innerRawApiResponse.Licenses || [];
-  console.log("All licenses:", licenses);
-  console.log(
-    "Checking state licenses:",
-    licenses.filter(
-      (l: License) => l.category?.toLowerCase() === "state_license"
-    )
-  );
 
   const hasActiveLicense = licenses.some((license: License) => {
     const isStateCategory = license.category?.toLowerCase() === "state_license";
     const isActive = license.status?.toLowerCase() === "active";
     const isNotExpired = isValidDate(license.expirationDate);
 
-    console.log("License check:", {
-      license,
-      isStateCategory,
-      isActive,
-      isNotExpired,
-      expirationDate: license.expirationDate,
-      currentDate: new Date(),
-    });
-
     return isStateCategory && isActive && isNotExpired;
   });
 
-  console.log("State License Check:", {
-    hasActiveLicense,
-    activeLicenses: licenses
-      .filter((l: License) => {
-        const isStateCategory = l.category?.toLowerCase() === "state_license";
-        const isActive = l.status?.toLowerCase() === "active";
-        const isNotExpired = isValidDate(l.expirationDate);
-        return isStateCategory && isActive && isNotExpired;
-      })
-      .map((l: License) => ({
-        category: l.category,
-        issuer: l.issuer,
-        type: l.type,
-        number: l.number,
-        status: l.status,
-        expirationDate: l.expirationDate,
-      })),
-  });
   return hasActiveLicense;
 }
 
@@ -130,25 +96,6 @@ function checkDeaCds(data: any): boolean {
     return isDeaCategory && isActive && isNotExpired;
   });
 
-  console.log("DEA Check:", {
-    hasActiveDea,
-    deaLicenses: licenses
-      .filter((l: License) => {
-        const isDeaCategory =
-          l.category?.toLowerCase() === "controlled_substance_registration";
-        const isActive = l.status?.toLowerCase() === "active";
-        const isNotExpired = isValidDate(l.expirationDate);
-        return isDeaCategory && isActive && isNotExpired;
-      })
-      .map((l: License) => ({
-        category: l.category,
-        issuer: l.issuer,
-        type: l.type,
-        number: l.number,
-        status: l.status,
-        expirationDate: l.expirationDate,
-      })),
-  });
   return hasActiveDea;
 }
 
@@ -167,25 +114,6 @@ function checkBoardCertification(data: any): boolean {
     return isBoardCategory && isActive && isNotExpired;
   });
 
-  console.log("Board Cert Check:", {
-    hasActiveCert,
-    activeCerts: licenses
-      .filter((l: License) => {
-        const isBoardCategory =
-          l.category?.toLowerCase() === "board_certification";
-        const isActive = l.status?.toLowerCase() === "active";
-        const isNotExpired = isValidDate(l.expirationDate);
-        return isBoardCategory && isActive && isNotExpired;
-      })
-      .map((l: License) => ({
-        category: l.category,
-        issuer: l.issuer,
-        type: l.type,
-        number: l.number,
-        status: l.status,
-        expirationDate: l.expirationDate,
-      })),
-  });
   return hasActiveCert;
 }
 
@@ -217,14 +145,6 @@ function processApiResponse(data: any) {
   const requirements = providerTypes.find(
     (type) => type.name === providerType
   )?.requirements;
-
-  console.log("Processing eligibility:", {
-    hasStateLicense,
-    hasDeaCds,
-    hasBoardCert,
-    providerType,
-    requirements,
-  });
 
   if (!requirements) {
     return {

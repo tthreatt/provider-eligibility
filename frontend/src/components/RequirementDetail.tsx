@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Typography,
   Box,
@@ -10,30 +10,33 @@ import {
   Chip,
   Accordion as MuiAccordion,
   AccordionSummary as MuiAccordionSummary,
-  AccordionDetails as MuiAccordionDetails
-} from '@mui/material';
-import WarningIcon from '@mui/icons-material/Warning';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import CheckIcon from '@mui/icons-material/Check';
-import { formatExpirationDate } from '../utils/eligibilityProcessor';
-import { CheckCircle, Cancel } from '@mui/icons-material';
-import { generateDetailTestId } from '../utils/testUtils';
+  AccordionDetails as MuiAccordionDetails,
+} from "@mui/material";
+import WarningIcon from "@mui/icons-material/Warning";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import CheckIcon from "@mui/icons-material/Check";
+import { formatExpirationDate } from "../utils/eligibilityProcessor";
+import { CheckCircle, Cancel } from "@mui/icons-material";
+import { generateDetailTestId } from "../utils/testUtils";
 
 const isDEARequirement = (type: string, detail?: DetailType): boolean => {
   const normalizedType = type.toLowerCase();
-  const isTypeMatch = normalizedType === 'controlled_substance_registration' || 
-                     normalizedType === 'dea_registration' ||
-                     normalizedType.includes('dea') ||
-                     normalizedType === 'registration';
+  const isTypeMatch =
+    normalizedType === "controlled_substance_registration" ||
+    normalizedType === "dea_registration" ||
+    normalizedType.includes("dea") ||
+    normalizedType === "registration";
 
   if (!isTypeMatch) return false;
 
   // If we have a detail object, check additional fields
   if (detail) {
     const licenseDetail = detail as LicenseDetailType;
-    return licenseDetail.issuer === 'DEA' || 
-           licenseDetail.type?.includes('DEA') ||
-           licenseDetail.type?.includes('Drug Enforcement Administration');
+    return (
+      licenseDetail.issuer === "DEA" ||
+      licenseDetail.type?.includes("DEA") ||
+      licenseDetail.type?.includes("Drug Enforcement Administration")
+    );
   }
 
   return isTypeMatch;
@@ -71,7 +74,10 @@ export interface NPIDetailType {
   isNPI: boolean;
 }
 
-export type DetailType = LicenseDetailType | CertificationDetailType | NPIDetailType;
+export type DetailType =
+  | LicenseDetailType
+  | CertificationDetailType
+  | NPIDetailType;
 
 interface RequirementDetailProps {
   detail: DetailType;
@@ -88,55 +94,58 @@ interface DetailFieldProps {
   isActive?: boolean;
 }
 
-const DetailField: React.FC<DetailFieldProps> = ({ label, value, isStatus, isActive }) => {
+const DetailField: React.FC<DetailFieldProps> = ({
+  label,
+  value,
+  isStatus,
+  isActive,
+}) => {
   if (!value) return null;
 
   return (
-    <Box 
-      component="div" 
-      sx={{ 
-        display: 'flex', 
-        alignItems: 'flex-start',
+    <Box
+      component="div"
+      sx={{
+        display: "flex",
+        alignItems: "flex-start",
         gap: 1,
-        width: '100%',
-        mb: 0.5
+        width: "100%",
+        mb: 0.5,
       }}
       data-testid={generateDetailTestId(label, value)}
     >
-      <Typography 
-        component="span" 
-        variant="body2" 
-        sx={{ 
-          fontWeight: 'medium',
-          color: 'text.secondary',
-          minWidth: '120px'
+      <Typography
+        component="span"
+        variant="body2"
+        sx={{
+          fontWeight: "medium",
+          color: "text.secondary",
+          minWidth: "120px",
         }}
       >
         {label}:
       </Typography>
       {isStatus ? (
-        <Box 
+        <Box
           component="span"
-          sx={{ 
-            color: isActive ? 'success.main' : 'error.main',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5
+          sx={{
+            color: isActive ? "success.main" : "error.main",
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
           }}
         >
-          <Typography 
-            component="span" 
-            variant="body2"
-          >
+          <Typography component="span" variant="body2">
             {value}
           </Typography>
-          {isActive ? <CheckCircle fontSize="small" /> : <Cancel fontSize="small" />}
+          {isActive ? (
+            <CheckCircle fontSize="small" />
+          ) : (
+            <Cancel fontSize="small" />
+          )}
         </Box>
       ) : (
-        <Typography 
-          component="span" 
-          variant="body2"
-        >
+        <Typography component="span" variant="body2">
           {value}
         </Typography>
       )}
@@ -150,59 +159,60 @@ const DetailWrapper: React.FC<{
   index?: number;
   totalItems?: number;
 }> = ({ children, isMultiple, index, totalItems }) => (
-  <Box 
-    component="div" 
-    sx={{ 
-      width: '100%',
+  <Box
+    component="div"
+    sx={{
+      width: "100%",
       mb: 2,
-      '&:last-child': { mb: 0 }
+      "&:last-child": { mb: 0 },
     }}
   >
     {children}
-    {isMultiple && index !== undefined && totalItems !== undefined && index < totalItems - 1 && (
-      <Divider sx={{ my: 2 }} />
-    )}
+    {isMultiple &&
+      index !== undefined &&
+      totalItems !== undefined &&
+      index < totalItems - 1 && <Divider sx={{ my: 2 }} />}
   </Box>
 );
 
 const renderBoardActions = (actions?: string[]) => {
   // Debug logging
-  console.group('Board Actions Debug');
-  console.log('Received actions:', actions);
+  console.group("Board Actions Debug");
+  console.log("Received actions:", actions);
   console.groupEnd();
 
   if (!actions || actions.length === 0) {
-    console.log('No board actions to render');
+    console.log("No board actions to render");
     return null;
   }
 
   return (
-    <Box component="div" sx={{ mt: 2, width: '100%' }}>
+    <Box component="div" sx={{ mt: 2, width: "100%" }}>
       <MuiAccordion defaultExpanded disableGutters>
         <MuiAccordionSummary
           expandIcon={<ExpandMoreIcon />}
           aria-controls="board-actions-content"
           id="board-actions-header"
-          sx={{ 
-            bgcolor: 'white',
-            '& .MuiAccordionSummary-content': {
-              margin: '4px 0'
+          sx={{
+            bgcolor: "white",
+            "& .MuiAccordionSummary-content": {
+              margin: "4px 0",
             },
-            '&.Mui-expanded': {
-              minHeight: '48px',
-              bgcolor: 'white'
+            "&.Mui-expanded": {
+              minHeight: "48px",
+              bgcolor: "white",
             },
-            '&:hover': {
-              bgcolor: 'white'
-            }
+            "&:hover": {
+              bgcolor: "white",
+            },
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <WarningIcon color="warning" fontSize="small" />
-            <Typography 
-              component="div" 
+            <Typography
+              component="div"
               variant="subtitle1"
-              sx={{ color: 'warning.dark', fontWeight: 'medium' }}
+              sx={{ color: "warning.dark", fontWeight: "medium" }}
               data-testid="board-actions-title"
             >
               Board Actions History
@@ -210,28 +220,28 @@ const renderBoardActions = (actions?: string[]) => {
           </Box>
         </MuiAccordionSummary>
         <MuiAccordionDetails sx={{ pt: 0, pb: 1 }}>
-          <List sx={{ width: '100%', pl: 0 }}>
+          <List sx={{ width: "100%", pl: 0 }}>
             {actions.map((action, idx) => (
-              <ListItem 
-                key={idx} 
-                sx={{ 
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  padding: '8px 0',
-                  width: '100%'
+              <ListItem
+                key={idx}
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  padding: "8px 0",
+                  width: "100%",
                 }}
               >
-                <ListItemIcon sx={{ minWidth: '40px' }}>
+                <ListItemIcon sx={{ minWidth: "40px" }}>
                   <WarningIcon color="warning" />
                 </ListItemIcon>
                 <ListItemText
                   primary={action}
                   data-testid={`board-action-${idx + 1}-text`}
-                  sx={{ 
+                  sx={{
                     margin: 0,
-                    '& .MuiTypography-root': {
-                      wordBreak: 'break-word'
-                    }
+                    "& .MuiTypography-root": {
+                      wordBreak: "break-word",
+                    },
                   }}
                 />
               </ListItem>
@@ -248,52 +258,61 @@ export const RequirementDetail: React.FC<RequirementDetailProps> = ({
   requirementType,
   isMultiple,
   index,
-  totalItems
+  totalItems,
 }) => {
   // Debug logging for the entire detail object
-  console.group('RequirementDetail Debug');
-  console.log('Detail:', detail);
-  console.log('Is DEA:', isDEARequirement(requirementType, detail));
-  console.log('Additional Info:', (detail as LicenseDetailType).additionalInfo);
+  console.group("RequirementDetail Debug");
+  console.log("Detail:", detail);
+  console.log("Is DEA:", isDEARequirement(requirementType, detail));
+  console.log("Additional Info:", (detail as LicenseDetailType).additionalInfo);
   console.groupEnd();
 
-  const normalizedType = (requirementType || '').toLowerCase().replace(/\s+/g, '_');
-  const isNPIRequirement = normalizedType === 'national_provider_identifier' || normalizedType === 'npi';
+  const normalizedType = (requirementType || "")
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+  const isNPIRequirement =
+    normalizedType === "national_provider_identifier" ||
+    normalizedType === "npi";
   const isDEA = isDEARequirement(requirementType, detail);
-  
+
   // Handle NPI display
   if ((detail as NPIDetailType).isNPI) {
     const npiDetail = detail as NPIDetailType;
     return (
-      <DetailWrapper isMultiple={isMultiple} index={index} totalItems={totalItems}>
-        <DetailField 
-          label="Number" 
-          value={npiDetail.number} 
-        />
-        <DetailField 
-          label="Status" 
-          value={npiDetail.status} 
+      <DetailWrapper
+        isMultiple={isMultiple}
+        index={index}
+        totalItems={totalItems}
+      >
+        <DetailField label="Number" value={npiDetail.number} />
+        <DetailField
+          label="Status"
+          value={npiDetail.status}
           isStatus={true}
-          isActive={npiDetail.status?.toLowerCase() === 'active'}
+          isActive={npiDetail.status?.toLowerCase() === "active"}
         />
       </DetailWrapper>
     );
   }
 
-  if (normalizedType === 'board_certification') {
+  if (normalizedType === "board_certification") {
     const certDetail = detail as CertificationDetailType;
     return (
-      <DetailWrapper isMultiple={isMultiple} index={index} totalItems={totalItems}>
+      <DetailWrapper
+        isMultiple={isMultiple}
+        index={index}
+        totalItems={totalItems}
+      >
         <DetailField label="Issuer" value={certDetail.issuer} />
         <DetailField label="Type" value={certDetail.type} />
         <DetailField label="Number" value={certDetail.number} />
-        <DetailField 
+        <DetailField
           label="Status"
           value={certDetail.status}
           isStatus={true}
-          isActive={certDetail.status?.toLowerCase() === 'active'}
+          isActive={certDetail.status?.toLowerCase() === "active"}
         />
-        <DetailField 
+        <DetailField
           label="Expiration Date"
           value={formatExpirationDate(certDetail.expirationDate)}
         />
@@ -303,32 +322,36 @@ export const RequirementDetail: React.FC<RequirementDetailProps> = ({
   }
 
   const licenseDetail = detail as LicenseDetailType;
-  const isActive = licenseDetail.status?.toLowerCase() === 'active';
+  const isActive = licenseDetail.status?.toLowerCase() === "active";
 
   return (
-    <DetailWrapper isMultiple={isMultiple} index={index} totalItems={totalItems}>
+    <DetailWrapper
+      isMultiple={isMultiple}
+      index={index}
+      totalItems={totalItems}
+    >
       <DetailField label="Issuer" value={licenseDetail.issuer} />
       <DetailField label="Type" value={licenseDetail.type} />
       <DetailField label="Number" value={licenseDetail.number} />
-      <DetailField 
+      <DetailField
         label="Status"
         value={licenseDetail.status}
         isStatus={true}
         isActive={isActive}
       />
       {isDEA && licenseDetail.additionalInfo?.licenseState && (
-        <DetailField 
+        <DetailField
           label="State"
           value={licenseDetail.additionalInfo.licenseState}
         />
       )}
       {isDEA && licenseDetail.additionalInfo?.deaSchedules && (
-        <DetailField 
+        <DetailField
           label="Schedules"
           value={licenseDetail.additionalInfo.deaSchedules}
         />
       )}
-      <DetailField 
+      <DetailField
         label="Expiration Date"
         value={formatExpirationDate(licenseDetail.expirationDate)}
       />
@@ -337,20 +360,22 @@ export const RequirementDetail: React.FC<RequirementDetailProps> = ({
   );
 };
 
-const shouldDisplayField = (value: string | number | null | undefined): boolean => {
+const shouldDisplayField = (
+  value: string | number | null | undefined
+): boolean => {
   // Handle numeric values (including string numbers)
-  if (typeof value === 'number' || !isNaN(Number(value))) {
-    return value !== 0 && value !== '0';
+  if (typeof value === "number" || !isNaN(Number(value))) {
+    return value !== 0 && value !== "0";
   }
 
   // Handle null/undefined/empty
   if (value === null || value === undefined) return false;
-  if (typeof value === 'string' && value.trim() === '') return false;
+  if (typeof value === "string" && value.trim() === "") return false;
 
   // Handle default values
-  if (value === 'Unknown' || value === 'Not Available') return false;
+  if (value === "Unknown" || value === "Not Available") return false;
 
   return true;
 };
 
-export default RequirementDetail; 
+export default RequirementDetail;

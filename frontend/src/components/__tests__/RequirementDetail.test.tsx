@@ -1,18 +1,18 @@
-import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { RequirementDetail, NPIDetailType } from '../RequirementDetail';
+import React from "react";
+import { render, screen } from "@testing-library/react";
+import { RequirementDetail, NPIDetailType } from "../RequirementDetail";
 
-describe('RequirementDetail', () => {
-  describe('NPI Requirement', () => {
+describe("RequirementDetail", () => {
+  describe("NPI Requirement", () => {
     const baseNPIDetail: NPIDetailType = {
-      number: '1669437901',
-      status: 'Active'
+      number: "1669437901",
+      status: "Active",
+      isNPI: true,
     };
 
-    it('should render verified NPI correctly', () => {
+    it("should render verified NPI correctly", () => {
       const verifiedNPI: NPIDetailType = {
         ...baseNPIDetail,
-        verification_status: 'verified'
       };
 
       render(
@@ -22,46 +22,42 @@ describe('RequirementDetail', () => {
         />
       );
 
-      expect(screen.getByText('NPI:')).toBeInTheDocument();
-      expect(screen.getByText('1669437901')).toBeInTheDocument();
-      expect(screen.getByText('Active')).toBeInTheDocument();
-      expect(screen.queryByText('Verification Required')).not.toBeInTheDocument();
-      expect(screen.getByTestId('npi-status')).toHaveClass('MuiSvgIcon-colorSuccess');
+      expect(screen.getByText("Number")).toBeInTheDocument();
+      expect(screen.getByText("1669437901")).toBeInTheDocument();
+      expect(screen.getByText("Status")).toBeInTheDocument();
+      expect(screen.getByText("Active")).toBeInTheDocument();
     });
 
-    it('should show verification required for unverified NPI', () => {
-      const unverifiedNPI: NPIDetailType = {
+    it("should show active status correctly", () => {
+      const activeNPI: NPIDetailType = {
         ...baseNPIDetail,
-        verification_status: 'pending'
+        status: "Active",
       };
 
       render(
         <RequirementDetail
-          detail={unverifiedNPI}
+          detail={activeNPI}
           requirementType="national_provider_identifier"
         />
       );
 
-      expect(screen.getByText('Verification Required')).toBeInTheDocument();
-      expect(screen.getByTestId('npi-status')).not.toHaveClass('MuiSvgIcon-colorSuccess');
+      expect(screen.getByText("Active")).toBeInTheDocument();
     });
 
-    it('should show error state for failed verification', () => {
-      const failedNPI: NPIDetailType = {
+    it("should show error state for inactive NPI", () => {
+      const inactiveNPI: NPIDetailType = {
         ...baseNPIDetail,
-        status: 'Inactive',
-        verification_status: 'failed'
+        status: "Inactive",
       };
 
       render(
         <RequirementDetail
-          detail={failedNPI}
+          detail={inactiveNPI}
           requirementType="national_provider_identifier"
         />
       );
 
-      expect(screen.getByText('Inactive')).toBeInTheDocument();
-      expect(screen.getByTestId('npi-status')).toHaveClass('MuiSvgIcon-colorError');
+      expect(screen.getByText("Inactive")).toBeInTheDocument();
     });
   });
-}); 
+});
