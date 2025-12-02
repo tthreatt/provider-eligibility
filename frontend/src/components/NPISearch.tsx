@@ -16,12 +16,10 @@ import {
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"
 import CancelIcon from "@mui/icons-material/Cancel"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import { API_ROUTES } from '../config/api'
 import { SearchForm } from './SearchForm'
 import RequirementList from './RequirementList'
 import { ProcessedEligibility } from '../types/eligibility'
-import { InterpretedLicense } from '../utils/eligibilityProcessor'
-import { processRequirementDetails, cleanRawApiResponse, validateRequirement, processEligibilityData, createProviderProfile } from '../utils/eligibilityProcessor'
+import { processEligibilityData } from '../utils/eligibilityProcessor'
 
 // Provider service functions
 const fetchProviderData = async (npi: string, token: string | null) => {
@@ -102,215 +100,8 @@ export function NPISearch({ loading = false }: NPISearchProps) {
       console.log('Raw provider data:', rawProviderData);
       console.log('Eligibility rules:', eligibilityRules);
 
-      // Extract provider type from raw data
-      const rawProviderType = rawProviderData.npiDetails?.providerType || 'Allopathic & Osteopathic Physicians';
-      
-      console.log('Provider type:', {
-        raw: rawProviderType,
-        normalized: rawProviderType?.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim()
-      });
-
-      // Create provider profile from raw data
-      const providerProfile = createProviderProfile(rawProviderData);
-      
-      console.log('Provider Profile:', providerProfile);
-
-      // Transform the backend response to match our frontend structure
-      const processedResult: ProcessedEligibility = {
-        isEligible: rawProviderData.isEligible,
-        requirements: [
-          {
-            id: 1,
-            name: 'National Provider Identifier',
-            requirement_type: 'npi',
-            type: 'npi',
-            description: 'Valid NPI number',
-            validation_rules: { required: true },
-            base_requirement_id: 1,
-            provider_type_id: 1,
-            severity: 1,
-            is_valid: true,
-            status: 'valid',
-            is_required: true,
-            details: [{
-              type: 'NPI',
-              number: rawProviderData.rawApiResponse['NPI Validation']?.npi,
-              status: 'Active',
-              issuer: 'CMS',
-              expirationDate: null
-            }]
-          },
-          {
-            id: 2,
-            name: 'Medical Degree',
-            requirement_type: 'degree',
-            type: 'degree',
-            description: 'MD or DO from accredited institution',
-            validation_rules: { required: true },
-            base_requirement_id: 2,
-            provider_type_id: 1,
-            severity: 1,
-            is_valid: rawProviderData.requirements.medicalDegree,
-            status: rawProviderData.requirements.medicalDegree ? 'valid' : 'required',
-            is_required: true,
-            details: []
-          },
-          {
-            id: 3,
-            name: 'Residency Program',
-            requirement_type: 'residency',
-            type: 'residency',
-            description: 'Completed residency program',
-            validation_rules: { required: true },
-            base_requirement_id: 3,
-            provider_type_id: 1,
-            severity: 1,
-            is_valid: rawProviderData.requirements.residencyProgram,
-            status: rawProviderData.requirements.residencyProgram ? 'valid' : 'required',
-            is_required: true,
-            details: []
-          },
-          {
-            id: 4,
-            name: 'State License',
-            requirement_type: 'license',
-            type: 'license',
-            description: 'Valid state medical license',
-            validation_rules: { required: true },
-            base_requirement_id: 4,
-            provider_type_id: 1,
-            severity: 1,
-            is_valid: rawProviderData.requirements.stateLicense,
-            status: rawProviderData.requirements.stateLicense ? 'valid' : 'required',
-            is_required: true,
-            details: rawProviderData.rawApiResponse.Licenses
-              .filter((l: { category: string }) => l.category === 'STATE_LICENSE')
-              .map((l: { type: string; number: string; issuer: string; status: string; expirationDate: string | null }) => ({
-                type: l.type,
-                number: l.number,
-                issuer: l.issuer,
-                status: l.status,
-                expirationDate: l.expirationDate
-              }))
-          },
-          {
-            id: 5,
-            name: 'DEA Registration',
-            requirement_type: 'registration',
-            type: 'registration',
-            description: 'Valid DEA registration',
-            validation_rules: { required: true },
-            base_requirement_id: 5,
-            provider_type_id: 1,
-            severity: 1,
-            is_valid: rawProviderData.rawApiResponse.Licenses.some(l => 
-              l.category === 'CONTROLLED_SUBSTANCE_REGISTRATION' && 
-              l.issuer === 'DEA' && 
-              l.status === 'Active' &&
-              new Date(l.expirationDate) > new Date()
-            ),
-            status: rawProviderData.rawApiResponse.Licenses.some(l => 
-              l.category === 'CONTROLLED_SUBSTANCE_REGISTRATION' && 
-              l.issuer === 'DEA' && 
-              l.status === 'Active' &&
-              new Date(l.expirationDate) > new Date()
-            ) ? 'valid' : 'invalid',
-            is_required: true,
-            details: rawProviderData.rawApiResponse.Licenses
-              .filter((l: { category: string; issuer: string }) => l.category === 'CONTROLLED_SUBSTANCE_REGISTRATION' && l.issuer === 'DEA')
-              .map((l: { type: string; number: string; issuer: string; status: string; expirationDate: string | null; additionalInfo?: any }) => ({
-                type: l.type,
-                number: l.number,
-                issuer: l.issuer,
-                status: l.status,
-                expirationDate: l.expirationDate,
-                additionalInfo: l.additionalInfo
-              }))
-          },
-          {
-            id: 6,
-            name: 'Board Certification',
-            requirement_type: 'certification',
-            type: 'certification',
-            description: 'Valid medical board certification',
-            validation_rules: { required: true },
-            base_requirement_id: 6,
-            provider_type_id: 1,
-            severity: 1,
-            is_valid: rawProviderData.rawApiResponse.Licenses.some(l => 
-              l.category === 'BOARD_CERTIFICATION' && 
-              l.issuer?.includes('ABMS') && 
-              l.status === 'Active' &&
-              new Date(l.expirationDate) > new Date()
-            ),
-            status: rawProviderData.rawApiResponse.Licenses.some(l => 
-              l.category === 'BOARD_CERTIFICATION' && 
-              l.issuer?.includes('ABMS') && 
-              l.status === 'Active' &&
-              new Date(l.expirationDate) > new Date()
-            ) ? 'valid' : 'invalid',
-            is_required: true,
-            details: rawProviderData.rawApiResponse.Licenses
-              .filter((l: { category: string }) => l.category === 'BOARD_CERTIFICATION')
-              .map((l: { type: string; number: string; issuer: string; status: string; expirationDate: string | null }) => ({
-                type: l.type,
-                number: l.number,
-                issuer: l.issuer,
-                status: l.status,
-                expirationDate: l.expirationDate
-              }))
-          },
-          {
-            id: 7,
-            name: 'Malpractice Insurance',
-            requirement_type: 'insurance',
-            type: 'insurance',
-            description: 'Active malpractice insurance',
-            validation_rules: { required: true },
-            base_requirement_id: 7,
-            provider_type_id: 1,
-            severity: 1,
-            is_valid: rawProviderData.requirements.malpracticeInsurance,
-            status: rawProviderData.requirements.malpracticeInsurance ? 'valid' : 'required',
-            is_required: true,
-            details: []
-          },
-          {
-            id: 8,
-            name: 'Background Check',
-            requirement_type: 'background_check',
-            type: 'background_check',
-            description: 'Completed background check',
-            validation_rules: { required: true },
-            base_requirement_id: 8,
-            provider_type_id: 1,
-            severity: 1,
-            is_valid: rawProviderData.requirements.backgroundCheck,
-            status: rawProviderData.requirements.backgroundCheck ? 'valid' : 'required',
-            is_required: true,
-            details: []
-          },
-          {
-            id: 9,
-            name: 'Work History',
-            requirement_type: 'work_history',
-            type: 'work_history',
-            description: 'Verified work history',
-            validation_rules: { required: true },
-            base_requirement_id: 9,
-            provider_type_id: 1,
-            severity: 1,
-            is_valid: rawProviderData.requirements.workHistory,
-            status: rawProviderData.requirements.workHistory ? 'valid' : 'required',
-            is_required: true,
-            details: []
-          }
-        ],
-        rawValidation: {
-          rawApiResponse: rawProviderData.rawApiResponse
-        },
-        providerType: rawProviderData.requirements.providerType
-      };
+      // Use processEligibilityData to properly structure the data
+      const processedResult = processEligibilityData(rawProviderData);
 
       setSearchResult(processedResult);
 
@@ -361,19 +152,31 @@ export function NPISearch({ loading = false }: NPISearchProps) {
           {/* Provider Basic Info */}
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" sx={{ color: 'text.primary', mb: 1, fontWeight: 'medium' }}>
-              Provider: {searchResult.rawValidation.rawApiResponse['NPI Validation']?.providerName || 'N/A'}
+              Provider: {searchResult.rawValidation.npiDetails?.providerName || 
+                         searchResult.rawValidation.providerName || 
+                         searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.providerName || 
+                         'N/A'}
             </Typography>
             
             <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
-              NPI: {searchResult.rawValidation.rawApiResponse['NPI Validation']?.npi || 'N/A'}
+              NPI: {searchResult.rawValidation.npiDetails?.npi || 
+                    searchResult.rawValidation.npi || 
+                    searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.npi || 
+                    'N/A'}
             </Typography>
             
             <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
-              Provider Type: {searchResult.rawValidation.rawApiResponse['NPI Validation']?.licenses?.[0]?.code?.split(' - ')?.[1] || 'N/A'}
+              Provider Type: {searchResult.rawValidation.npiDetails?.providerType || 
+                              searchResult.rawValidation.providerType || 
+                              searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.licenses?.[0]?.code?.split(' - ')?.[1] || 
+                              'N/A'}
             </Typography>
             
             <Typography variant="subtitle1" sx={{ color: 'text.secondary' }}>
-              Entity Type: {searchResult.rawValidation.rawApiResponse['NPI Validation']?.entityType || 'N/A'}
+              Entity Type: {searchResult.rawValidation.npiDetails?.entityType || 
+                            searchResult.rawValidation.entityType || 
+                            searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.entityType || 
+                            'N/A'}
             </Typography>
           </Box>
 
@@ -390,20 +193,20 @@ export function NPISearch({ loading = false }: NPISearchProps) {
             <Box sx={{ mb: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>Mailing Address:</Typography>
               <Typography variant="body2">
-                {searchResult.rawValidation.rawApiResponse['NPI Validation']?.mailingAddress || 'N/A'}
+                {searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.mailingAddress || 'N/A'}
               </Typography>
               <Typography variant="body2">
-                Phone: {searchResult.rawValidation.rawApiResponse['NPI Validation']?.mailingPhone || 'N/A'}
+                Phone: {searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.mailingPhone || 'N/A'}
               </Typography>
             </Box>
 
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>Practice Address:</Typography>
               <Typography variant="body2">
-                {searchResult.rawValidation.rawApiResponse['NPI Validation']?.practiceAddress || 'N/A'}
+                {searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.practiceAddress || 'N/A'}
               </Typography>
               <Typography variant="body2">
-                Phone: {searchResult.rawValidation.rawApiResponse['NPI Validation']?.practicePhone || 'N/A'}
+                Phone: {searchResult.rawValidation.rawApiResponse?.['NPI Validation']?.practicePhone || 'N/A'}
               </Typography>
             </Box>
           </Box>

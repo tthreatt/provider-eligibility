@@ -346,8 +346,8 @@ export interface InterpretedLicense {
 }
 
 export function createProviderProfile(rawData: any): ProviderProfile {
-  const npiValidation = rawData.rawApiResponse['NPI Validation'];
-  const licenses = rawData.rawApiResponse['Licenses'] || [];
+  const npiValidation = rawData?.rawApiResponse?.['NPI Validation'] || {};
+  const licenses = rawData?.rawApiResponse?.['Licenses'] || [];
   
   // Interpret all licenses
   const interpretedLicenses = licenses.map(interpretLicense);
@@ -362,18 +362,18 @@ export function createProviderProfile(rawData: any): ProviderProfile {
   
   return {
     basic: {
-      name: npiValidation.providerName || '',
-      npi: npiValidation.npi || '',
-      providerType: npiValidation.providerType || '',
-      entityType: npiValidation.entityType || '',
-      enumerationDate: npiValidation.enumerationDate || '',
-      lastUpdate: npiValidation.updateDate || ''
+      name: npiValidation?.providerName || '',
+      npi: npiValidation?.npi || '',
+      providerType: npiValidation?.providerType || '',
+      entityType: npiValidation?.entityType || '',
+      enumerationDate: npiValidation?.enumerationDate || '',
+      lastUpdate: npiValidation?.updateDate || ''
     },
     contact: {
-      mailingAddress: npiValidation.mailingAddress || '',
-      mailingPhone: npiValidation.mailingPhone || '',
-      practiceAddress: npiValidation.practiceAddress || '',
-      practicePhone: npiValidation.practicePhone || ''
+      mailingAddress: npiValidation?.mailingAddress || '',
+      mailingPhone: npiValidation?.mailingPhone || '',
+      practiceAddress: npiValidation?.practiceAddress || '',
+      practicePhone: npiValidation?.practicePhone || ''
     },
     licenses: {
       stateLicenses,
@@ -382,9 +382,9 @@ export function createProviderProfile(rawData: any): ProviderProfile {
       otherLicenses
     },
     verificationStatus: {
-      hasExclusions: Array.isArray(rawData.rawApiResponse['Exclusions']) && rawData.rawApiResponse['Exclusions'].length > 0,
-      hasPreclusions: Array.isArray(rawData.rawApiResponse['CMS Preclusion List']) && rawData.rawApiResponse['CMS Preclusion List'].length > 0,
-      hasOptOut: Boolean(rawData.rawApiResponse['Opt Out'] && Object.keys(rawData.rawApiResponse['Opt Out']).length > 0),
+      hasExclusions: Array.isArray(rawData?.rawApiResponse?.['Exclusions']) && rawData.rawApiResponse['Exclusions'].length > 0,
+      hasPreclusions: Array.isArray(rawData?.rawApiResponse?.['CMS Preclusion List']) && rawData.rawApiResponse['CMS Preclusion List'].length > 0,
+      hasOptOut: Boolean(rawData?.rawApiResponse?.['Opt Out'] && Object.keys(rawData.rawApiResponse['Opt Out']).length > 0),
       exclusionSources: []
     }
   };
@@ -408,12 +408,12 @@ function normalizeProviderType(type: string): string {
 }
 
 export function processEligibilityData(rawData: any): ProcessedEligibility {
-  // Extract data from the raw API response
-  const npiValidationData = rawData.rawApiResponse['NPI Validation'];
-  const licenses = rawData.rawApiResponse['Licenses'] || [];
+  // Extract data from the raw API response with proper null checks
+  const npiValidationData = rawData?.rawApiResponse?.['NPI Validation'] || {};
+  const licenses = rawData?.rawApiResponse?.['Licenses'] || [];
   
   // Extract and normalize provider type
-  const rawProviderType = rawData.requirements?.providerType || npiValidationData?.providerName;
+  const rawProviderType = rawData?.requirements?.providerType || npiValidationData?.providerName;
   const providerType = rawProviderType ? normalizeProviderType(rawProviderType) : undefined;
   
   console.log('Processing provider data:', {
@@ -444,8 +444,8 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
     licenses: npiDetails.licenses,
     entityType: npiDetails.entityType,
     enumerationDate: npiDetails.enumerationDate,
-    // Include the full raw response
-    rawApiResponse: rawData.rawApiResponse
+    // Include the full raw response (with fallback to empty object)
+    rawApiResponse: rawData?.rawApiResponse || {}
   };
 
   // Process requirements based on provider type and licenses
