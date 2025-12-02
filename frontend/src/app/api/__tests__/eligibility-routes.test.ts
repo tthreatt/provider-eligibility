@@ -7,8 +7,9 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest } from "next/server";
 
 // Mock Clerk auth
+const mockAuth = jest.fn();
 jest.mock("@clerk/nextjs/server", () => ({
-  auth: jest.fn(),
+  auth: mockAuth,
 }));
 
 // Mock fetch globally
@@ -24,7 +25,7 @@ describe("API Routes", () => {
   describe("GET /api/eligibility/rules", () => {
     it("should return eligibility rules when authenticated", async () => {
       // Mock auth to return a user
-      (auth as jest.Mock).mockResolvedValue({ userId: "user123" });
+      mockAuth.mockResolvedValue({ userId: "user123" });
 
       // Mock backend response
       const mockRules = [
@@ -72,7 +73,7 @@ describe("API Routes", () => {
     });
 
     it("should return 401 when not authenticated", async () => {
-      (auth as jest.Mock).mockResolvedValue({ userId: null });
+      mockAuth.mockResolvedValue({ userId: null });
 
       const { GET } = await import("../eligibility/rules/route");
       const response = await GET();
@@ -84,7 +85,7 @@ describe("API Routes", () => {
     });
 
     it("should handle backend errors", async () => {
-      (auth as jest.Mock).mockResolvedValue({ userId: "user123" });
+      mockAuth.mockResolvedValue({ userId: "user123" });
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
@@ -103,7 +104,7 @@ describe("API Routes", () => {
 
   describe("POST /api/eligibility/check", () => {
     it("should check eligibility when authenticated", async () => {
-      (auth as jest.Mock).mockResolvedValue({ userId: "user123" });
+      mockAuth.mockResolvedValue({ userId: "user123" });
 
       const mockProviderData = {
         "NPI Validation": {
@@ -167,7 +168,7 @@ describe("API Routes", () => {
     });
 
     it("should return 401 when not authenticated", async () => {
-      (auth as jest.Mock).mockResolvedValue({ userId: null });
+      mockAuth.mockResolvedValue({ userId: null });
 
       const { POST } = await import("../eligibility/check/route");
 
@@ -187,7 +188,7 @@ describe("API Routes", () => {
     });
 
     it("should handle provider profile fetch errors", async () => {
-      (auth as jest.Mock).mockResolvedValue({ userId: "user123" });
+      mockAuth.mockResolvedValue({ userId: "user123" });
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
@@ -215,7 +216,7 @@ describe("API Routes", () => {
 
   describe("POST /api/fetch-provider-data", () => {
     it("should fetch provider data when authenticated", async () => {
-      (auth as jest.Mock).mockResolvedValue({ userId: "user123" });
+      mockAuth.mockResolvedValue({ userId: "user123" });
 
       const mockProviderData = {
         rawApiResponse: {
@@ -239,7 +240,7 @@ describe("API Routes", () => {
         json: async () => mockProviderData,
       });
 
-      const { POST } = await import("../../fetch-provider-data/route");
+      const { POST } = await import("../fetch-provider-data/route");
 
       const request = new NextRequest(
         "http://localhost:3000/api/fetch-provider-data",
@@ -268,9 +269,9 @@ describe("API Routes", () => {
     });
 
     it("should return 401 when not authenticated", async () => {
-      (auth as jest.Mock).mockResolvedValue({ userId: null });
+      mockAuth.mockResolvedValue({ userId: null });
 
-      const { POST } = await import("../../fetch-provider-data/route");
+      const { POST } = await import("../fetch-provider-data/route");
 
       const request = new NextRequest(
         "http://localhost:3000/api/fetch-provider-data",
@@ -288,7 +289,7 @@ describe("API Routes", () => {
     });
 
     it("should handle backend errors", async () => {
-      (auth as jest.Mock).mockResolvedValue({ userId: "user123" });
+      mockAuth.mockResolvedValue({ userId: "user123" });
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
@@ -296,7 +297,7 @@ describe("API Routes", () => {
         json: async () => ({ error: "Backend error" }),
       });
 
-      const { POST } = await import("../../fetch-provider-data/route");
+      const { POST } = await import("../fetch-provider-data/route");
 
       const request = new NextRequest(
         "http://localhost:3000/api/fetch-provider-data",

@@ -11,19 +11,15 @@ from app.core.database import get_db
 from app.models.eligibility_rules import (
     BaseRequirement,
     ProviderRequirement,
-    ValidationRule,
-)
-from app.models.eligibility_rules import (
     ProviderType as ProviderTypeModel,
+    ValidationRule,
 )
 from app.schemas.eligibility import (
     EligibilityCheck,
     EligibilityResponse,
+    ProviderType as ProviderTypeSchema,
     ProviderTypeCreate,
     RequirementBase,
-)
-from app.schemas.eligibility import (
-    ProviderType as ProviderTypeSchema,
 )
 from app.services.provider_trust import ProviderTrustAPI
 
