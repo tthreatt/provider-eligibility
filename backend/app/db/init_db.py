@@ -161,9 +161,7 @@ def seed_provider_types(db: Session):
         for provider_data in provider_types_data:
             # Check if provider type already exists
             existing_provider_type = (
-                db.query(ProviderType)
-                .filter_by(code=provider_data["code"])
-                .first()
+                db.query(ProviderType).filter_by(code=provider_data["code"]).first()
             )
 
             if existing_provider_type:
@@ -247,6 +245,9 @@ def init_db(db: Session):
         # If seeding fails (e.g., data already exists), log but don't fail
         # This allows the app to start even if database is already initialized
         import logging
+
         logger = logging.getLogger(__name__)
-        logger.warning(f"Database seeding encountered an error (this may be expected if data already exists): {str(e)}")
+        logger.warning(
+            f"Database seeding encountered an error (this may be expected if data already exists): {str(e)}"
+        )
         db.rollback()

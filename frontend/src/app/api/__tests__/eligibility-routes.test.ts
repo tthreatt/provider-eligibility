@@ -47,7 +47,13 @@ describe("API Routes", () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
+        status: 200,
+        headers: {
+          get: (name: string) =>
+            name === "content-type" ? "application/json" : null,
+        },
         json: async () => mockRules,
+        text: async () => JSON.stringify(mockRules),
       });
 
       // Import the route handler dynamically
@@ -90,7 +96,12 @@ describe("API Routes", () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
         status: 500,
+        headers: {
+          get: (name: string) =>
+            name === "content-type" ? "application/json" : null,
+        },
         json: async () => ({ error: "Backend error" }),
+        text: async () => JSON.stringify({ error: "Backend error" }),
       });
 
       const { GET } = await import("../eligibility/rules/route");
@@ -141,12 +152,24 @@ describe("API Routes", () => {
       (global.fetch as jest.Mock)
         .mockResolvedValueOnce({
           ok: true,
+          status: 200,
+          headers: {
+            get: (name: string) =>
+              name === "content-type" ? "application/json" : null,
+          },
           json: async () => mockProviderData,
+          text: async () => JSON.stringify(mockProviderData),
         })
         // Mock rules fetch
         .mockResolvedValueOnce({
           ok: true,
+          status: 200,
+          headers: {
+            get: (name: string) =>
+              name === "content-type" ? "application/json" : null,
+          },
           json: async () => mockRules,
+          text: async () => JSON.stringify(mockRules),
         });
 
       const { POST } = await import("../eligibility/check/route");
@@ -193,7 +216,12 @@ describe("API Routes", () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
         status: 404,
+        headers: {
+          get: (name: string) =>
+            name === "content-type" ? "application/json" : null,
+        },
         json: async () => ({ error: "Provider not found" }),
+        text: async () => JSON.stringify({ error: "Provider not found" }),
       });
 
       const { POST } = await import("../eligibility/check/route");
@@ -237,7 +265,13 @@ describe("API Routes", () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
+        status: 200,
+        headers: {
+          get: (name: string) =>
+            name === "content-type" ? "application/json" : null,
+        },
         json: async () => mockProviderData,
+        text: async () => JSON.stringify(mockProviderData),
       });
 
       const { POST } = await import("../fetch-provider-data/route");
@@ -294,7 +328,12 @@ describe("API Routes", () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
         status: 500,
+        headers: {
+          get: (name: string) =>
+            name === "content-type" ? "application/json" : null,
+        },
         json: async () => ({ error: "Backend error" }),
+        text: async () => JSON.stringify({ error: "Backend error" }),
       });
 
       const { POST } = await import("../fetch-provider-data/route");

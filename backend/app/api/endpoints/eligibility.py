@@ -11,15 +11,19 @@ from app.core.database import get_db
 from app.models.eligibility_rules import (
     BaseRequirement,
     ProviderRequirement,
-    ProviderType as ProviderTypeModel,
     ValidationRule,
+)
+from app.models.eligibility_rules import (
+    ProviderType as ProviderTypeModel,
 )
 from app.schemas.eligibility import (
     EligibilityCheck,
     EligibilityResponse,
-    ProviderType as ProviderTypeSchema,
     ProviderTypeCreate,
     RequirementBase,
+)
+from app.schemas.eligibility import (
+    ProviderType as ProviderTypeSchema,
 )
 from app.services.provider_trust import ProviderTrustAPI
 
@@ -133,7 +137,11 @@ async def get_provider_types(db: Session = Depends(get_db)):
                         logger.warning(f"Error parsing override rules: {e}")
                         req_data["validation_rules"] = {}
                 # Fall back to base requirement validation rules
-                elif base_req and base_req.validation_rule and base_req.validation_rule.rules:
+                elif (
+                    base_req
+                    and base_req.validation_rule
+                    and base_req.validation_rule.rules
+                ):
                     try:
                         logger.debug("Using base validation rules")
                         req_data["validation_rules"] = json.loads(
@@ -218,7 +226,9 @@ async def get_provider_type(provider_type_id: int, db: Session = Depends(get_db)
                 except (json.JSONDecodeError, TypeError) as e:
                     logger.warning(f"Error parsing override validation rules: {e}")
                     req_data["validation_rules"] = {}
-            elif base_req and base_req.validation_rule and base_req.validation_rule.rules:
+            elif (
+                base_req and base_req.validation_rule and base_req.validation_rule.rules
+            ):
                 try:
                     req_data["validation_rules"] = json.loads(
                         base_req.validation_rule.rules
@@ -511,7 +521,7 @@ async def check_eligibility(
         # Log the full error for debugging
         logger.error(
             f"Error in check_eligibility endpoint: {str(e)}\n{traceback.format_exc()}",
-            exc_info=True
+            exc_info=True,
         )
         raise HTTPException(status_code=500, detail=str(e)) from e
 

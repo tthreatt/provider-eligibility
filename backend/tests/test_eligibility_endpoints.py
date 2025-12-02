@@ -42,7 +42,10 @@ def sample_provider_type_data():
                 "name": "State License",
                 "description": "Valid state medical license",
                 "is_required": True,
-                "validation_rules": {"license_type": "Medical Doctor", "status": "Active"},
+                "validation_rules": {
+                    "license_type": "Medical Doctor",
+                    "status": "Active",
+                },
             },
             {
                 "requirement_type": "certification",
@@ -72,9 +75,9 @@ def sample_provider_data():
                     "details": {
                         "type": "Medical Doctor",
                         "status": "Active",
-                        "expirationDate": (datetime.utcnow() + timedelta(days=365)).strftime(
-                            "%Y-%m-%d"
-                        ),
+                        "expirationDate": (
+                            datetime.utcnow() + timedelta(days=365)
+                        ).strftime("%Y-%m-%d"),
                         "number": "12345",
                         "issuer": "Test State",
                     },
@@ -84,9 +87,9 @@ def sample_provider_data():
                     "details": {
                         "type": "Internal Medicine",
                         "status": "Active",
-                        "expirationDate": (datetime.utcnow() + timedelta(days=365)).strftime(
-                            "%Y-%m-%d"
-                        ),
+                        "expirationDate": (
+                            datetime.utcnow() + timedelta(days=365)
+                        ).strftime("%Y-%m-%d"),
                         "number": "67890",
                         "issuer": "Test Board",
                     },
@@ -146,7 +149,9 @@ class TestCreateProviderType:
     """Test create_provider_type endpoint"""
 
     @patch("app.api.endpoints.eligibility.get_db")
-    def test_create_provider_type_success(self, mock_get_db, mock_db, sample_provider_type_data):
+    def test_create_provider_type_success(
+        self, mock_get_db, mock_db, sample_provider_type_data
+    ):
         """Test successful creation of provider type"""
         mock_get_db.return_value = iter([mock_db])
         mock_db.add = MagicMock()
@@ -182,7 +187,9 @@ class TestGetProviderTypes:
     """Test get_provider_types endpoint"""
 
     @patch("app.api.endpoints.eligibility.get_db")
-    def test_get_provider_types_success(self, mock_get_db, mock_db, mock_provider_type_model):
+    def test_get_provider_types_success(
+        self, mock_get_db, mock_db, mock_provider_type_model
+    ):
         """Test successful retrieval of provider types"""
         mock_get_db.return_value = iter([mock_db])
         mock_db.query.return_value.options.return_value.all.return_value = [
@@ -215,12 +222,12 @@ class TestGetProviderType:
     """Test get_provider_type endpoint"""
 
     @patch("app.api.endpoints.eligibility.get_db")
-    def test_get_provider_type_success(self, mock_get_db, mock_db, mock_provider_type_model):
+    def test_get_provider_type_success(
+        self, mock_get_db, mock_db, mock_provider_type_model
+    ):
         """Test successful retrieval of a single provider type"""
         mock_get_db.return_value = iter([mock_db])
-        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = (
-            mock_provider_type_model
-        )
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = mock_provider_type_model
 
         response = client.get("/api/eligibility/rules/1")
 
@@ -233,9 +240,7 @@ class TestGetProviderType:
     def test_get_provider_type_not_found(self, mock_get_db, mock_db):
         """Test retrieval of non-existent provider type"""
         mock_get_db.return_value = iter([mock_db])
-        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = (
-            None
-        )
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = None
 
         response = client.get("/api/eligibility/rules/999")
 
@@ -275,18 +280,24 @@ class TestUpdateProviderType:
         mock_db.query.return_value.join.return_value.all.return_value = [updated_req]
 
         sample_provider_type_data["code"] = "md_updated"
-        response = client.put("/api/eligibility/rules/1", json=sample_provider_type_data)
+        response = client.put(
+            "/api/eligibility/rules/1", json=sample_provider_type_data
+        )
 
         # Note: This might fail due to complex mocking, but structure is correct
         assert response.status_code in [200, 500]  # 500 if mocking is incomplete
 
     @patch("app.api.endpoints.eligibility.get_db")
-    def test_update_provider_type_not_found(self, mock_get_db, mock_db, sample_provider_type_data):
+    def test_update_provider_type_not_found(
+        self, mock_get_db, mock_db, sample_provider_type_data
+    ):
         """Test update of non-existent provider type"""
         mock_get_db.return_value = iter([mock_db])
         mock_db.query.return_value.filter.return_value.first.return_value = None
 
-        response = client.put("/api/eligibility/rules/999", json=sample_provider_type_data)
+        response = client.put(
+            "/api/eligibility/rules/999", json=sample_provider_type_data
+        )
 
         assert response.status_code == 404
 
@@ -295,7 +306,9 @@ class TestDeleteProviderType:
     """Test delete_provider_type endpoint"""
 
     @patch("app.api.endpoints.eligibility.get_db")
-    def test_delete_provider_type_success(self, mock_get_db, mock_db, mock_provider_type_model):
+    def test_delete_provider_type_success(
+        self, mock_get_db, mock_db, mock_provider_type_model
+    ):
         """Test successful deletion of provider type"""
         mock_get_db.return_value = iter([mock_db])
         mock_db.query.return_value.filter.return_value.first.return_value = (
@@ -340,7 +353,9 @@ class TestCheckEligibility:
 
         # Mock ProviderTrustAPI
         mock_provider_trust = AsyncMock()
-        mock_provider_trust.search_profile = AsyncMock(return_value=sample_provider_data)
+        mock_provider_trust.search_profile = AsyncMock(
+            return_value=sample_provider_data
+        )
         mock_provider_trust_class.return_value = mock_provider_trust
 
         # Mock database query
@@ -364,7 +379,9 @@ class TestCheckEligibility:
         # Mock ProviderTrustAPI with missing provider type
         provider_data_no_type = {"rawApiResponse": {"NPI Validation": {}}}
         mock_provider_trust = AsyncMock()
-        mock_provider_trust.search_profile = AsyncMock(return_value=provider_data_no_type)
+        mock_provider_trust.search_profile = AsyncMock(
+            return_value=provider_data_no_type
+        )
         mock_provider_trust_class.return_value = mock_provider_trust
 
         response = client.post("/api/eligibility/check", json={"npi": "1104025329"})
@@ -381,7 +398,9 @@ class TestCheckEligibility:
 
         # Mock ProviderTrustAPI
         mock_provider_trust = AsyncMock()
-        mock_provider_trust.search_profile = AsyncMock(return_value=sample_provider_data)
+        mock_provider_trust.search_profile = AsyncMock(
+            return_value=sample_provider_data
+        )
         mock_provider_trust_class.return_value = mock_provider_trust
 
         # Mock database query returning None (no rules)
@@ -403,9 +422,9 @@ class TestRequirementCheckFunctions:
                 {
                     "category": "state_license",
                     "status": "Active",
-                    "expirationDate": (datetime.utcnow() + timedelta(days=365)).strftime(
-                        "%Y-%m-%d"
-                    ),
+                    "expirationDate": (
+                        datetime.utcnow() + timedelta(days=365)
+                    ).strftime("%Y-%m-%d"),
                 }
             ]
         }
@@ -421,7 +440,9 @@ class TestRequirementCheckFunctions:
         result = check_license_requirement(provider_data, rules)
         assert result is False
 
-    def test_check_license_requirement_missing_expiration_date(self, sample_provider_data):
+    def test_check_license_requirement_missing_expiration_date(
+        self, sample_provider_data
+    ):
         """Test license requirement check with missing expiration date"""
         rules = {"license_type": "state_license"}
         provider_data = {
@@ -461,9 +482,9 @@ class TestRequirementCheckFunctions:
                 {
                     "category": "board_certification",
                     "status": "Active",
-                    "expirationDate": (datetime.utcnow() + timedelta(days=365)).strftime(
-                        "%Y-%m-%d"
-                    ),
+                    "expirationDate": (
+                        datetime.utcnow() + timedelta(days=365)
+                    ).strftime("%Y-%m-%d"),
                 }
             ]
         }
@@ -497,9 +518,9 @@ class TestRequirementCheckFunctions:
                 {
                     "category": "dea_registration",
                     "status": "Active",
-                    "expirationDate": (datetime.utcnow() + timedelta(days=365)).strftime(
-                        "%Y-%m-%d"
-                    ),
+                    "expirationDate": (
+                        datetime.utcnow() + timedelta(days=365)
+                    ).strftime("%Y-%m-%d"),
                 }
             ]
         }
@@ -532,4 +553,3 @@ class TestRequirementCheckFunctions:
 
         result = check_requirement(provider_data, "unknown_type", rules)
         assert result is False
-
