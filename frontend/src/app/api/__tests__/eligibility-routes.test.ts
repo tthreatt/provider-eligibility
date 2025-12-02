@@ -52,7 +52,9 @@ describe("API Routes", () => {
       // Import the route handler dynamically
       const { GET } = await import("../eligibility/rules/route");
 
-      const request = new NextRequest("http://localhost:3000/api/eligibility/rules");
+      const request = new NextRequest(
+        "http://localhost:3000/api/eligibility/rules"
+      );
       const response = await GET();
       const data = await response.json();
 
@@ -148,10 +150,13 @@ describe("API Routes", () => {
 
       const { POST } = await import("../eligibility/check/route");
 
-      const request = new NextRequest("http://localhost:3000/api/eligibility/check", {
-        method: "POST",
-        body: JSON.stringify({ npi: "1104025329" }),
-      });
+      const request = new NextRequest(
+        "http://localhost:3000/api/eligibility/check",
+        {
+          method: "POST",
+          body: JSON.stringify({ npi: "1104025329" }),
+        }
+      );
 
       const response = await POST(request);
       const data = await response.json();
@@ -166,10 +171,13 @@ describe("API Routes", () => {
 
       const { POST } = await import("../eligibility/check/route");
 
-      const request = new NextRequest("http://localhost:3000/api/eligibility/check", {
-        method: "POST",
-        body: JSON.stringify({ npi: "1104025329" }),
-      });
+      const request = new NextRequest(
+        "http://localhost:3000/api/eligibility/check",
+        {
+          method: "POST",
+          body: JSON.stringify({ npi: "1104025329" }),
+        }
+      );
 
       const response = await POST(request);
       const data = await response.json();
@@ -189,10 +197,13 @@ describe("API Routes", () => {
 
       const { POST } = await import("../eligibility/check/route");
 
-      const request = new NextRequest("http://localhost:3000/api/eligibility/check", {
-        method: "POST",
-        body: JSON.stringify({ npi: "1104025329" }),
-      });
+      const request = new NextRequest(
+        "http://localhost:3000/api/eligibility/check",
+        {
+          method: "POST",
+          body: JSON.stringify({ npi: "1104025329" }),
+        }
+      );
 
       const response = await POST(request);
       const data = await response.json();
@@ -230,10 +241,13 @@ describe("API Routes", () => {
 
       const { POST } = await import("../../fetch-provider-data/route");
 
-      const request = new NextRequest("http://localhost:3000/api/fetch-provider-data", {
-        method: "POST",
-        body: JSON.stringify({ npi: "1104025329" }),
-      });
+      const request = new NextRequest(
+        "http://localhost:3000/api/fetch-provider-data",
+        {
+          method: "POST",
+          body: JSON.stringify({ npi: "1104025329" }),
+        }
+      );
 
       const response = await POST(request);
       const data = await response.json();
@@ -258,10 +272,13 @@ describe("API Routes", () => {
 
       const { POST } = await import("../../fetch-provider-data/route");
 
-      const request = new NextRequest("http://localhost:3000/api/fetch-provider-data", {
-        method: "POST",
-        body: JSON.stringify({ npi: "1104025329" }),
-      });
+      const request = new NextRequest(
+        "http://localhost:3000/api/fetch-provider-data",
+        {
+          method: "POST",
+          body: JSON.stringify({ npi: "1104025329" }),
+        }
+      );
 
       const response = await POST(request);
       const data = await response.json();
@@ -281,10 +298,13 @@ describe("API Routes", () => {
 
       const { POST } = await import("../../fetch-provider-data/route");
 
-      const request = new NextRequest("http://localhost:3000/api/fetch-provider-data", {
-        method: "POST",
-        body: JSON.stringify({ npi: "1104025329" }),
-      });
+      const request = new NextRequest(
+        "http://localhost:3000/api/fetch-provider-data",
+        {
+          method: "POST",
+          body: JSON.stringify({ npi: "1104025329" }),
+        }
+      );
 
       const response = await POST(request);
       const data = await response.json();
@@ -294,4 +314,3 @@ describe("API Routes", () => {
     });
   });
 });
-

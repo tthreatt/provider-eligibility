@@ -8,8 +8,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.database import get_db
-
-logger = logging.getLogger(__name__)
 from app.models.eligibility_rules import (
     BaseRequirement,
     ProviderRequirement,
@@ -28,6 +26,8 @@ from app.schemas.eligibility import (
     ProviderType as ProviderTypeSchema,
 )
 from app.services.provider_trust import ProviderTrustAPI
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -427,7 +427,7 @@ async def check_eligibility(
         # Get provider type from the response
         # Try rawApiResponse structure first, then fallback to direct structure
         provider_type_name = None
-        
+
         # Check if response has rawApiResponse wrapper
         if "rawApiResponse" in provider_data:
             provider_type_name = (
@@ -435,12 +435,12 @@ async def check_eligibility(
                 .get("NPI Validation", {})
                 .get("providerType")
             )
-        
+
         # Fallback: check direct structure
         if not provider_type_name:
             npi_validation = provider_data.get("NPI Validation", {})
             provider_type_name = npi_validation.get("providerType")
-        
+
         if not provider_type_name:
             raise HTTPException(
                 status_code=400, detail="Provider type not found in response"
@@ -467,11 +467,11 @@ async def check_eligibility(
 
         for provider_req in provider_type.requirements:
             base_req = provider_req.base_requirement
-            
+
             # Skip if base requirement is missing
             if not base_req:
                 continue
-            
+
             validation_rule = base_req.validation_rule
 
             # Use override rules if they exist, otherwise use base validation rules
@@ -483,7 +483,7 @@ async def check_eligibility(
                 else:
                     # Skip if no validation rules available
                     continue
-            except (json.JSONDecodeError, TypeError, AttributeError) as e:
+            except (json.JSONDecodeError, TypeError, AttributeError):
                 # Skip this requirement if rules can't be parsed
                 continue
 
@@ -631,7 +631,7 @@ async def get_base_requirements(db: Session = Depends(get_db)):
                         f"Failed to parse validation rules for requirement {req.id}: {req.validation_rule.rules}"
                     )
                     validation_rules = {}
-            
+
             req_data = {
                 "id": req.id,
                 "requirement_type": req.requirement_type,

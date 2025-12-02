@@ -15,7 +15,10 @@ export async function GET() {
       return NextResponse.json(
         {
           error: "Authentication error",
-          details: authError instanceof Error ? authError.message : "Failed to authenticate",
+          details:
+            authError instanceof Error
+              ? authError.message
+              : "Failed to authenticate",
         },
         { status: 500 }
       );
@@ -40,21 +43,22 @@ export async function GET() {
     let response;
     try {
       response = await fetch(
-      `${BACKEND_URL}/api/eligibility/base-requirements`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-KEY": process.env.API_KEY || "",
-        },
-      }
-    );
+        `${BACKEND_URL}/api/eligibility/base-requirements`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-KEY": process.env.API_KEY || "",
+          },
+        }
+      );
     } catch (fetchError) {
       console.error("Fetch error:", fetchError);
       return NextResponse.json(
         {
           error: "Failed to connect to backend",
-          details: fetchError instanceof Error ? fetchError.message : "Network error",
+          details:
+            fetchError instanceof Error ? fetchError.message : "Network error",
         },
         { status: 503 }
       );
@@ -71,7 +75,10 @@ export async function GET() {
             // Response claims to be JSON but parsing failed - read as text instead
             const text = await response.text();
             errorData = { error: text || "Failed to fetch base requirements" };
-            console.warn("Failed to parse error response as JSON, using text:", text.substring(0, 200));
+            console.warn(
+              "Failed to parse error response as JSON, using text:",
+              text.substring(0, 200)
+            );
           }
         } else {
           const text = await response.text();
@@ -82,7 +89,12 @@ export async function GET() {
         errorData = { error: "Failed to fetch base requirements" };
       }
       return NextResponse.json(
-        { error: errorData.error || errorData.detail || "Failed to fetch base requirements" },
+        {
+          error:
+            errorData.error ||
+            errorData.detail ||
+            "Failed to fetch base requirements",
+        },
         { status: response.status }
       );
     }
@@ -98,17 +110,23 @@ export async function GET() {
           const text = await response.text();
           console.error("Failed to parse JSON response:", jsonError);
           console.error("Response body:", text.substring(0, 500));
-          throw new Error(`Invalid JSON response: ${jsonError instanceof Error ? jsonError.message : "Unknown error"}. Response: ${text.substring(0, 200)}`);
+          throw new Error(
+            `Invalid JSON response: ${jsonError instanceof Error ? jsonError.message : "Unknown error"}. Response: ${text.substring(0, 200)}`
+          );
         }
       } else {
         const text = await response.text();
-        throw new Error(`Unexpected content type: ${contentType}. Response: ${text.substring(0, 200)}`);
+        throw new Error(
+          `Unexpected content type: ${contentType}. Response: ${text.substring(0, 200)}`
+        );
       }
     } catch (parseError) {
       console.error("Error parsing base requirements response:", parseError);
-      throw new Error(`Failed to parse response: ${parseError instanceof Error ? parseError.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to parse response: ${parseError instanceof Error ? parseError.message : "Unknown error"}`
+      );
     }
-    
+
     return NextResponse.json(baseRequirements);
   } catch (error) {
     console.error("Base requirements error:", error);
