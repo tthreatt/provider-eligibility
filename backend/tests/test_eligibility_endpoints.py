@@ -421,6 +421,38 @@ class TestRequirementCheckFunctions:
         result = check_license_requirement(provider_data, rules)
         assert result is False
 
+    def test_check_license_requirement_missing_expiration_date(self, sample_provider_data):
+        """Test license requirement check with missing expiration date"""
+        rules = {"license_type": "state_license"}
+        provider_data = {
+            "licenses": [
+                {
+                    "category": "state_license",
+                    "status": "Active",
+                    # Missing expirationDate
+                }
+            ]
+        }
+
+        result = check_license_requirement(provider_data, rules)
+        assert result is False  # Should gracefully handle missing date
+
+    def test_check_license_requirement_invalid_date_format(self, sample_provider_data):
+        """Test license requirement check with invalid date format"""
+        rules = {"license_type": "state_license"}
+        provider_data = {
+            "licenses": [
+                {
+                    "category": "state_license",
+                    "status": "Active",
+                    "expirationDate": "invalid-date-format",
+                }
+            ]
+        }
+
+        result = check_license_requirement(provider_data, rules)
+        assert result is False  # Should gracefully handle invalid date format
+
     def test_check_certification_requirement_valid(self, sample_provider_data):
         """Test certification requirement check with valid certification"""
         rules = {"certification_type": "board_certification"}
@@ -439,6 +471,24 @@ class TestRequirementCheckFunctions:
         result = check_certification_requirement(provider_data, rules)
         assert result is True
 
+    def test_check_certification_requirement_missing_expiration_date(
+        self, sample_provider_data
+    ):
+        """Test certification requirement check with missing expiration date"""
+        rules = {"certification_type": "board_certification"}
+        provider_data = {
+            "licenses": [
+                {
+                    "category": "board_certification",
+                    "status": "Active",
+                    # Missing expirationDate
+                }
+            ]
+        }
+
+        result = check_certification_requirement(provider_data, rules)
+        assert result is False  # Should gracefully handle missing date
+
     def test_check_registration_requirement_valid(self, sample_provider_data):
         """Test registration requirement check with valid registration"""
         rules = {"registration_type": "dea_registration"}
@@ -456,6 +506,24 @@ class TestRequirementCheckFunctions:
 
         result = check_registration_requirement(provider_data, rules)
         assert result is True
+
+    def test_check_registration_requirement_missing_expiration_date(
+        self, sample_provider_data
+    ):
+        """Test registration requirement check with missing expiration date"""
+        rules = {"registration_type": "dea_registration"}
+        provider_data = {
+            "licenses": [
+                {
+                    "category": "dea_registration",
+                    "status": "Active",
+                    # Missing expirationDate
+                }
+            ]
+        }
+
+        result = check_registration_requirement(provider_data, rules)
+        assert result is False  # Should gracefully handle missing date
 
     def test_check_requirement_unknown_type(self, sample_provider_data):
         """Test check_requirement with unknown requirement type"""

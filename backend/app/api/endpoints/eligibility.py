@@ -506,13 +506,24 @@ def check_license_requirement(provider_data: dict, rules: dict) -> bool:
         return False
 
     for license in provider_data["licenses"]:
-        if (
-            license.get("category") == rules.get("license_type")
-            and license.get("status", "").lower() == "active"
-            and datetime.strptime(license.get("expirationDate", ""), "%Y-%m-%d")
-            > datetime.utcnow()
-        ):
-            return True
+        expiration_date_str = license.get("expirationDate")
+        if not expiration_date_str:
+            continue  # Skip licenses without expiration dates
+
+        try:
+            expiration_date = datetime.strptime(expiration_date_str, "%Y-%m-%d")
+            if (
+                license.get("category") == rules.get("license_type")
+                and license.get("status", "").lower() == "active"
+                and expiration_date > datetime.utcnow()
+            ):
+                return True
+        except (ValueError, TypeError):
+            # Invalid date format, skip this license
+            logger.warning(
+                f"Invalid expiration date format for license: {expiration_date_str}"
+            )
+            continue
     return False
 
 
@@ -521,13 +532,24 @@ def check_certification_requirement(provider_data: dict, rules: dict) -> bool:
         return False
 
     for license in provider_data["licenses"]:
-        if (
-            license.get("category") == rules.get("certification_type")
-            and license.get("status", "").lower() == "active"
-            and datetime.strptime(license.get("expirationDate", ""), "%Y-%m-%d")
-            > datetime.utcnow()
-        ):
-            return True
+        expiration_date_str = license.get("expirationDate")
+        if not expiration_date_str:
+            continue  # Skip certifications without expiration dates
+
+        try:
+            expiration_date = datetime.strptime(expiration_date_str, "%Y-%m-%d")
+            if (
+                license.get("category") == rules.get("certification_type")
+                and license.get("status", "").lower() == "active"
+                and expiration_date > datetime.utcnow()
+            ):
+                return True
+        except (ValueError, TypeError):
+            # Invalid date format, skip this certification
+            logger.warning(
+                f"Invalid expiration date format for certification: {expiration_date_str}"
+            )
+            continue
     return False
 
 
@@ -536,13 +558,24 @@ def check_registration_requirement(provider_data: dict, rules: dict) -> bool:
         return False
 
     for license in provider_data["licenses"]:
-        if (
-            license.get("category") == rules.get("registration_type")
-            and license.get("status", "").lower() == "active"
-            and datetime.strptime(license.get("expirationDate", ""), "%Y-%m-%d")
-            > datetime.utcnow()
-        ):
-            return True
+        expiration_date_str = license.get("expirationDate")
+        if not expiration_date_str:
+            continue  # Skip registrations without expiration dates
+
+        try:
+            expiration_date = datetime.strptime(expiration_date_str, "%Y-%m-%d")
+            if (
+                license.get("category") == rules.get("registration_type")
+                and license.get("status", "").lower() == "active"
+                and expiration_date > datetime.utcnow()
+            ):
+                return True
+        except (ValueError, TypeError):
+            # Invalid date format, skip this registration
+            logger.warning(
+                f"Invalid expiration date format for registration: {expiration_date_str}"
+            )
+            continue
     return False
 
 
