@@ -133,17 +133,17 @@ async def get_provider_types(db: Session = Depends(get_db)):
                         req_data["validation_rules"] = json.loads(
                             requirement.override_validation_rules
                         )
-                    except json.JSONDecodeError as e:
+                    except (json.JSONDecodeError, TypeError) as e:
                         logger.warning(f"Error parsing override rules: {e}")
                         req_data["validation_rules"] = {}
                 # Fall back to base requirement validation rules
-                elif base_req and base_req.validation_rule:
+                elif base_req and base_req.validation_rule and base_req.validation_rule.rules:
                     try:
                         logger.debug("Using base validation rules")
                         req_data["validation_rules"] = json.loads(
                             base_req.validation_rule.rules
                         )
-                    except json.JSONDecodeError as e:
+                    except (json.JSONDecodeError, TypeError) as e:
                         logger.warning(f"Error parsing base rules: {e}")
                         req_data["validation_rules"] = {}
 
@@ -219,15 +219,15 @@ async def get_provider_type(provider_type_id: int, db: Session = Depends(get_db)
                     req_data["validation_rules"] = json.loads(
                         requirement.override_validation_rules
                     )
-                except json.JSONDecodeError as e:
+                except (json.JSONDecodeError, TypeError) as e:
                     logger.warning(f"Error parsing override validation rules: {e}")
                     req_data["validation_rules"] = {}
-            elif base_req and base_req.validation_rule:
+            elif base_req and base_req.validation_rule and base_req.validation_rule.rules:
                 try:
                     req_data["validation_rules"] = json.loads(
                         base_req.validation_rule.rules
                     )
-                except json.JSONDecodeError as e:
+                except (json.JSONDecodeError, TypeError) as e:
                     logger.warning(f"Error parsing base validation rules: {e}")
                     req_data["validation_rules"] = {}
 
@@ -425,11 +425,22 @@ async def check_eligibility(
         provider_data = await provider_trust.search_profile(request.npi)
 
         # Get provider type from the response
-        provider_type_name = (
-            provider_data.get("rawApiResponse", {})
-            .get("NPI Validation", {})
-            .get("providerType")
-        )
+        # Try rawApiResponse structure first, then fallback to direct structure
+        provider_type_name = None
+        
+        # Check if response has rawApiResponse wrapper
+        if "rawApiResponse" in provider_data:
+            provider_type_name = (
+                provider_data.get("rawApiResponse", {})
+                .get("NPI Validation", {})
+                .get("providerType")
+            )
+        
+        # Fallback: check direct structure
+        if not provider_type_name:
+            npi_validation = provider_data.get("NPI Validation", {})
+            provider_type_name = npi_validation.get("providerType")
+        
         if not provider_type_name:
             raise HTTPException(
                 status_code=400, detail="Provider type not found in response"
@@ -456,14 +467,25 @@ async def check_eligibility(
 
         for provider_req in provider_type.requirements:
             base_req = provider_req.base_requirement
+            
+            # Skip if base requirement is missing
+            if not base_req:
+                continue
+            
             validation_rule = base_req.validation_rule
 
             # Use override rules if they exist, otherwise use base validation rules
-            rules = (
-                json.loads(provider_req.override_validation_rules)
-                if provider_req.override_validation_rules
-                else json.loads(validation_rule.rules)
-            )
+            try:
+                if provider_req.override_validation_rules:
+                    rules = json.loads(provider_req.override_validation_rules)
+                elif validation_rule and validation_rule.rules:
+                    rules = json.loads(validation_rule.rules)
+                else:
+                    # Skip if no validation rules available
+                    continue
+            except (json.JSONDecodeError, TypeError, AttributeError) as e:
+                # Skip this requirement if rules can't be parsed
+                continue
 
             requirement_met = check_requirement(
                 provider_data, base_req.requirement_type, rules
@@ -486,7 +508,15 @@ async def check_eligibility(
 
         return response
 
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
+        # Log the full error for debugging
+        logger.error(
+            f"Error in check_eligibility endpoint: {str(e)}\n{traceback.format_exc()}",
+            exc_info=True
+        )
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -591,14 +621,23 @@ async def get_base_requirements(db: Session = Depends(get_db)):
 
         result = []
         for req in base_requirements:
+            # Safely parse validation rules
+            validation_rules = {}
+            if req.validation_rule and req.validation_rule.rules:
+                try:
+                    validation_rules = json.loads(req.validation_rule.rules)
+                except (json.JSONDecodeError, TypeError):
+                    logger.warning(
+                        f"Failed to parse validation rules for requirement {req.id}: {req.validation_rule.rules}"
+                    )
+                    validation_rules = {}
+            
             req_data = {
                 "id": req.id,
                 "requirement_type": req.requirement_type,
                 "name": req.name,
                 "description": req.description,
-                "validation_rules": json.loads(req.validation_rule.rules)
-                if req.validation_rule
-                else {},
+                "validation_rules": validation_rules,
             }
             result.append(req_data)
 
