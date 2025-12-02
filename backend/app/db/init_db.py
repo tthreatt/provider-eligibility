@@ -57,14 +57,13 @@ def seed_validation_rules(db: Session):
 
 def seed_provider_types(db: Session):
     try:
-        # Clear existing data
+        # Clear existing provider-related data (but keep validation rules)
         db.query(ProviderRequirement).delete()
         db.query(ProviderType).delete()
         db.query(BaseRequirement).delete()
-        db.query(ValidationRule).delete()
         db.commit()
 
-        # Seed validation rules first
+        # Seed validation rules first (they may already exist, that's fine)
         validation_rules = seed_validation_rules(db)
 
         # Use provider types from our models
@@ -160,35 +159,69 @@ def seed_provider_types(db: Session):
 
         # Create provider types and their requirements
         for provider_data in provider_types_data:
-            # Create provider type
-            provider_type = ProviderType(
-                code=provider_data["code"], name=provider_data["name"]
+            # Check if provider type already exists
+            existing_provider_type = (
+                db.query(ProviderType)
+                .filter_by(code=provider_data["code"])
+                .first()
             )
-            db.add(provider_type)
-            db.flush()
+
+            if existing_provider_type:
+                provider_type = existing_provider_type
+            else:
+                # Create provider type
+                provider_type = ProviderType(
+                    code=provider_data["code"], name=provider_data["name"]
+                )
+                db.add(provider_type)
+                db.flush()
 
             # Add requirements based on the provider type's requirements list
             for req_name in provider_data["requirements"]:
                 if req_name in standard_requirements:
                     req_data = standard_requirements[req_name]
 
-                    # Create base requirement
-                    base_req = BaseRequirement(
-                        requirement_type=req_data["requirement_type"],
-                        name=req_data["name"],
-                        description=req_data["description"],
-                        validation_rule_id=req_data["validation_rule_id"],
+                    # Check if base requirement already exists
+                    existing_base_req = (
+                        db.query(BaseRequirement)
+                        .filter_by(
+                            requirement_type=req_data["requirement_type"],
+                            validation_rule_id=req_data["validation_rule_id"],
+                        )
+                        .first()
                     )
-                    db.add(base_req)
-                    db.flush()
 
-                    # Create provider requirement
-                    provider_req = ProviderRequirement(
-                        provider_type_id=provider_type.id,
-                        base_requirement_id=base_req.id,
-                        is_required=req_data["is_required"],
+                    if existing_base_req:
+                        base_req = existing_base_req
+                    else:
+                        # Create base requirement
+                        base_req = BaseRequirement(
+                            requirement_type=req_data["requirement_type"],
+                            name=req_data["name"],
+                            description=req_data["description"],
+                            validation_rule_id=req_data["validation_rule_id"],
+                        )
+                        db.add(base_req)
+                        db.flush()
+
+                    # Check if provider requirement already exists
+                    existing_provider_req = (
+                        db.query(ProviderRequirement)
+                        .filter_by(
+                            provider_type_id=provider_type.id,
+                            base_requirement_id=base_req.id,
+                        )
+                        .first()
                     )
-                    db.add(provider_req)
+
+                    if not existing_provider_req:
+                        # Create provider requirement
+                        provider_req = ProviderRequirement(
+                            provider_type_id=provider_type.id,
+                            base_requirement_id=base_req.id,
+                            is_required=req_data["is_required"],
+                        )
+                        db.add(provider_req)
 
         db.commit()
 
@@ -205,5 +238,15 @@ def init_db(db: Session):
     Base.metadata.create_all(bind=db.get_bind())
 
     # Seed initial data
-    seed_validation_rules(db)
-    seed_provider_types(db)
+    # Note: seed_provider_types will call seed_validation_rules internally
+    # but we call it here first to ensure validation rules exist
+    try:
+        seed_validation_rules(db)
+        seed_provider_types(db)
+    except Exception as e:
+        # If seeding fails (e.g., data already exists), log but don't fail
+        # This allows the app to start even if database is already initialized
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Database seeding encountered an error (this may be expected if data already exists): {str(e)}")
+        db.rollback()
