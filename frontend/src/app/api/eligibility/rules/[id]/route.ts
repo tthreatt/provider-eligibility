@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
-import { API_ROUTES } from '@/config/api';
+import { auth } from '@clerk/nextjs/server';
 import type { BackendProviderType, BackendRequirement } from '@/types/providerTypes';
 import { generateProviderTypeCode } from '@/types/providerTypes';
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
 // Type guard for BackendRequirement
 function isBackendRequirement(value: any): value is BackendRequirement {
@@ -49,6 +51,16 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Get the auth session
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ 
+        error: 'Unauthorized', 
+        details: 'No user session found'
+      }, { status: 401 });
+    }
+
     const data = await request.json();
     console.log('Received update request for provider type:', {
       id: params.id,
@@ -102,10 +114,11 @@ export async function PUT(
     console.log('Data being sent to backend:', JSON.stringify(finalData, null, 2));
 
     // Send to backend
-    const response = await fetch(`${API_ROUTES.ELIGIBILITY_RULES}/${params.id}`, {
+    const response = await fetch(`${BACKEND_URL}/api/eligibility/rules/${params.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'X-API-KEY': process.env.API_KEY || '',
       },
       body: JSON.stringify(finalData),
     });

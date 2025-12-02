@@ -56,6 +56,7 @@ export async function getProviderTypes(): Promise<BackendProviderType[]> {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -71,11 +72,12 @@ export async function updateProviderType(id: string, data: BackendProviderType):
     const transformedData = transformToBackendFormat(data);
     console.log('Transformed data:', transformedData);
 
-    const response = await fetch(`http://localhost:8000/api/eligibility/rules/${id}`, {
+    const response = await fetch(`/api/eligibility/rules/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify(transformedData),
     });
 
@@ -130,6 +132,7 @@ export async function getProviderTypeById(id: string): Promise<BackendProviderTy
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
     });
 
     // Get response as text first

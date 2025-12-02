@@ -9,57 +9,70 @@ import type {
   RequirementMetadata,
 } from '@/types/providerTypes';
 
-const API_BASE_URL = 'http://localhost:8000/api/eligibility';
+// Use Next.js API routes instead of calling backend directly
+const API_BASE = '/api/eligibility';
 
 export async function getProviderTypes(): Promise<BackendProviderType[]> {
-  const response = await fetch(`${API_BASE_URL}/rules`);
+  const response = await fetch(`${API_BASE}/rules`, {
+    credentials: 'include',
+  });
   if (!response.ok) {
-    throw new Error('Failed to fetch provider types');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to fetch provider types');
   }
   return response.json();
 }
 
 export async function getBaseRequirements(): Promise<BaseRequirement[]> {
-  const response = await fetch(`${API_BASE_URL}/base-requirements`);
+  const response = await fetch(`${API_BASE}/base-requirements`, {
+    credentials: 'include',
+  });
   if (!response.ok) {
-    throw new Error('Failed to fetch base requirements');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to fetch base requirements');
   }
   return response.json();
 }
 
 export async function createProviderType(providerType: Omit<BackendProviderType, 'id'>): Promise<BackendProviderType> {
-  const response = await fetch(`${API_BASE_URL}/rules`, {
+  const response = await fetch(`${API_BASE}/rules`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify(providerType),
   });
   if (!response.ok) {
-    throw new Error('Failed to create provider type');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to create provider type');
   }
   return response.json();
 }
 
 export async function updateProviderType(id: number, providerType: Omit<BackendProviderType, 'id'>): Promise<BackendProviderType> {
-  const response = await fetch(`${API_BASE_URL}/rules/${id}`, {
+  const response = await fetch(`${API_BASE}/rules/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify(providerType),
   });
   if (!response.ok) {
-    throw new Error('Failed to update provider type');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to update provider type');
   }
   return response.json();
 }
 
 export async function deleteProviderType(id: number): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/rules/${id}`, {
+  const response = await fetch(`${API_BASE}/rules/${id}`, {
     method: 'DELETE',
+    credentials: 'include',
   });
   if (!response.ok) {
-    throw new Error('Failed to delete provider type');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to delete provider type');
   }
 } 

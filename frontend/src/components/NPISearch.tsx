@@ -16,7 +16,7 @@ import {
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"
 import CancelIcon from "@mui/icons-material/Cancel"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import { API_ROUTES, API_BASE_URL } from '../config/api'
+import { API_ROUTES } from '../config/api'
 import { SearchForm } from './SearchForm'
 import RequirementList from './RequirementList'
 import { ProcessedEligibility } from '../types/eligibility'
@@ -25,29 +25,37 @@ import { processRequirementDetails, cleanRawApiResponse, validateRequirement, pr
 
 // Provider service functions
 const fetchProviderData = async (npi: string, token: string | null) => {
-  if (!token) throw new Error('Authentication token is required');
-  
-  const response = await fetch(`${API_BASE_URL}/api/fetch-provider-data`, {
+  // Use Next.js API route instead of calling backend directly
+  const response = await fetch('/api/fetch-provider-data', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify({ npi }),
+    credentials: 'include', // Include cookies for Clerk auth
   });
   
   if (!response.ok) {
-    throw new Error('Failed to fetch provider data');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to fetch provider data');
   }
   
   return response.json();
 };
 
 const fetchEligibilityRules = async (token: string | null) => {
-  const response = await fetch(API_ROUTES.ELIGIBILITY_RULES);
+  // Use Next.js API route instead of calling backend directly
+  const response = await fetch('/api/eligibility/rules', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // Include cookies for Clerk auth
+  });
   
   if (!response.ok) {
-    throw new Error('Failed to fetch eligibility rules');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to fetch eligibility rules');
   }
   
   return response.json();

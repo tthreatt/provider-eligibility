@@ -97,17 +97,23 @@ export function EditRuleDialog({ providerType, isOpen, onClose, onSave }: EditRu
     try {
       setDialogState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Fetch all base requirements
-      const baseReqResponse = await fetch('http://localhost:8000/api/eligibility/base-requirements');
+      // Fetch all base requirements using Next.js API route
+      const baseReqResponse = await fetch('/api/eligibility/base-requirements', {
+        credentials: 'include',
+      });
       if (!baseReqResponse.ok) {
-        throw new Error('Failed to fetch base requirements');
+        const errorData = await baseReqResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch base requirements');
       }
       const baseRequirements: BaseRequirement[] = await baseReqResponse.json();
 
-      // Fetch current provider type requirements
-      const providerReqResponse = await fetch(`http://localhost:8000/api/eligibility/rules/${providerType.id}`);
+      // Fetch current provider type requirements using Next.js API route
+      const providerReqResponse = await fetch(`/api/eligibility/rules/${providerType.id}`, {
+        credentials: 'include',
+      });
       if (!providerReqResponse.ok) {
-        throw new Error('Failed to fetch provider type requirements');
+        const errorData = await providerReqResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch provider type requirements');
       }
       const currentProviderType: ProviderType = await providerReqResponse.json();
 

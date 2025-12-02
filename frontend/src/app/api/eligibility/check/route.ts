@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 // Add type declaration for process.env
 declare global {
@@ -82,6 +83,16 @@ interface EligibilityRule {
 
 export async function POST(request: Request): Promise<NextResponse<EligibilityResponse | ErrorResponse>> {
   try {
+    // Get the auth session
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ 
+        error: 'Unauthorized', 
+        details: 'No user session found'
+      }, { status: 401 });
+    }
+
     const { npi } = await request.json();
     
     // 1. Get provider profile
