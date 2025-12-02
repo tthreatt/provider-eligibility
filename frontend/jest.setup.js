@@ -45,4 +45,3 @@ if (typeof global.Headers === "undefined") {
     }
   };
 }
-
