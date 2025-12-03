@@ -30,6 +30,14 @@ def mock_db():
     return db
 
 
+@pytest.fixture(autouse=True)
+def override_get_db(mock_db):
+    """Override get_db dependency for all tests"""
+    app.dependency_overrides[get_db] = lambda: iter([mock_db])
+    yield
+    app.dependency_overrides.clear()
+
+
 @pytest.fixture
 def sample_provider_type_data():
     """Sample provider type data for testing"""
@@ -148,12 +156,8 @@ def mock_provider_type_model():
 class TestCreateProviderType:
     """Test create_provider_type endpoint"""
 
-    @patch("app.api.endpoints.eligibility.get_db")
-    def test_create_provider_type_success(
-        self, mock_get_db, mock_db, sample_provider_type_data
-    ):
+    def test_create_provider_type_success(self, mock_db, sample_provider_type_data):
         """Test successful creation of provider type"""
-        mock_get_db.return_value = iter([mock_db])
         mock_db.add = MagicMock()
         mock_db.flush = MagicMock()
         mock_db.commit = MagicMock()
@@ -175,10 +179,8 @@ class TestCreateProviderType:
         assert mock_db.add.called
         assert mock_db.commit.called
 
-    @patch("app.api.endpoints.eligibility.get_db")
-    def test_create_provider_type_missing_fields(self, mock_get_db, mock_db):
+    def test_create_provider_type_missing_fields(self, mock_db):
         """Test creation with missing required fields"""
-        mock_get_db.return_value = iter([mock_db])
         invalid_data = {"code": "md"}  # Missing name and requirements
 
         response = client.post("/api/eligibility/rules", json=invalid_data)
@@ -189,12 +191,8 @@ class TestCreateProviderType:
 class TestGetProviderTypes:
     """Test get_provider_types endpoint"""
 
-    @patch("app.api.endpoints.eligibility.get_db")
-    def test_get_provider_types_success(
-        self, mock_get_db, mock_db, mock_provider_type_model
-    ):
+    def test_get_provider_types_success(self, mock_db, mock_provider_type_model):
         """Test successful retrieval of provider types"""
-        mock_get_db.return_value = iter([mock_db])
         mock_db.query.return_value.options.return_value.all.return_value = [
             mock_provider_type_model
         ]
@@ -208,10 +206,8 @@ class TestGetProviderTypes:
             assert "code" in data[0]
             assert "name" in data[0]
 
-    @patch("app.api.endpoints.eligibility.get_db")
-    def test_get_provider_types_empty(self, mock_get_db, mock_db):
+    def test_get_provider_types_empty(self, mock_db):
         """Test retrieval when no provider types exist"""
-        mock_get_db.return_value = iter([mock_db])
         # Properly chain the query mock
         mock_options = MagicMock()
         mock_joinedload = MagicMock()
@@ -229,12 +225,8 @@ class TestGetProviderTypes:
 class TestGetProviderType:
     """Test get_provider_type endpoint"""
 
-    @patch("app.api.endpoints.eligibility.get_db")
-    def test_get_provider_type_success(
-        self, mock_get_db, mock_db, mock_provider_type_model
-    ):
+    def test_get_provider_type_success(self, mock_db, mock_provider_type_model):
         """Test successful retrieval of a single provider type"""
-        mock_get_db.return_value = iter([mock_db])
         mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = mock_provider_type_model
 
         response = client.get("/api/eligibility/rules/1")
@@ -244,10 +236,8 @@ class TestGetProviderType:
         assert data["id"] == 1
         assert data["code"] == "md"
 
-    @patch("app.api.endpoints.eligibility.get_db")
-    def test_get_provider_type_not_found(self, mock_get_db, mock_db):
+    def test_get_provider_type_not_found(self, mock_db):
         """Test retrieval of non-existent provider type"""
-        mock_get_db.return_value = iter([mock_db])
         mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = None
 
         response = client.get("/api/eligibility/rules/999")
@@ -258,12 +248,10 @@ class TestGetProviderType:
 class TestUpdateProviderType:
     """Test update_provider_type endpoint"""
 
-    @patch("app.api.endpoints.eligibility.get_db")
     def test_update_provider_type_success(
-        self, mock_get_db, mock_db, sample_provider_type_data, mock_provider_type_model
+        self, mock_db, sample_provider_type_data, mock_provider_type_model
     ):
         """Test successful update of provider type"""
-        mock_get_db.return_value = iter([mock_db])
         mock_db.query.return_value.filter.return_value.first.return_value = (
             mock_provider_type_model
         )
@@ -295,12 +283,8 @@ class TestUpdateProviderType:
         # Note: This might fail due to complex mocking, but structure is correct
         assert response.status_code in [200, 500]  # 500 if mocking is incomplete
 
-    @patch("app.api.endpoints.eligibility.get_db")
-    def test_update_provider_type_not_found(
-        self, mock_get_db, mock_db, sample_provider_type_data
-    ):
+    def test_update_provider_type_not_found(self, mock_db, sample_provider_type_data):
         """Test update of non-existent provider type"""
-        mock_get_db.return_value = iter([mock_db])
         # Properly chain the query mock
         mock_query = MagicMock()
         mock_filter = MagicMock()
@@ -323,12 +307,8 @@ class TestUpdateProviderType:
 class TestDeleteProviderType:
     """Test delete_provider_type endpoint"""
 
-    @patch("app.api.endpoints.eligibility.get_db")
-    def test_delete_provider_type_success(
-        self, mock_get_db, mock_db, mock_provider_type_model
-    ):
+    def test_delete_provider_type_success(self, mock_db, mock_provider_type_model):
         """Test successful deletion of provider type"""
-        mock_get_db.return_value = iter([mock_db])
         # Properly chain the query mocks
         mock_query = MagicMock()
         mock_filter = MagicMock()
@@ -351,10 +331,8 @@ class TestDeleteProviderType:
         mock_db.delete.assert_called_once_with(mock_provider_type_model)
         mock_db.commit.assert_called_once()
 
-    @patch("app.api.endpoints.eligibility.get_db")
-    def test_delete_provider_type_not_found(self, mock_get_db, mock_db):
+    def test_delete_provider_type_not_found(self, mock_db):
         """Test deletion of non-existent provider type"""
-        mock_get_db.return_value = iter([mock_db])
         mock_db.query.return_value.filter.return_value.first.return_value = None
 
         response = client.delete("/api/eligibility/rules/999")
@@ -366,17 +344,14 @@ class TestCheckEligibility:
     """Test check_eligibility endpoint"""
 
     @patch("app.api.endpoints.eligibility.ProviderTrustAPI")
-    @patch("app.api.endpoints.eligibility.get_db")
     def test_check_eligibility_success(
         self,
-        mock_get_db,
         mock_provider_trust_class,
         mock_db,
         sample_provider_data,
         mock_provider_type_model,
     ):
         """Test successful eligibility check"""
-        mock_get_db.return_value = iter([mock_db])
 
         # Mock ProviderTrustAPI
         mock_provider_trust = AsyncMock()
