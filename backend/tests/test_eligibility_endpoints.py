@@ -159,18 +159,21 @@ class TestCreateProviderType:
         mock_db.commit = MagicMock()
         mock_db.refresh = MagicMock()
 
-        # Mock the created provider type
+        # Mock the created provider type with proper attributes
         created_provider_type = MagicMock()
         created_provider_type.id = 1
         created_provider_type.code = sample_provider_type_data["code"]
         created_provider_type.name = sample_provider_type_data["name"]
+        created_provider_type.requirements = []
         mock_db.refresh.return_value = created_provider_type
+        # Make refresh modify the object in place
+        mock_db.refresh.side_effect = lambda obj: setattr(obj, "id", 1)
 
         response = client.post("/api/eligibility/rules", json=sample_provider_type_data)
 
         assert response.status_code == 200
-        mock_db.add.assert_called()
-        mock_db.commit.assert_called_once()
+        assert mock_db.add.called
+        assert mock_db.commit.called
 
     @patch("app.api.endpoints.eligibility.get_db")
     def test_create_provider_type_missing_fields(self, mock_get_db, mock_db):
@@ -209,7 +212,13 @@ class TestGetProviderTypes:
     def test_get_provider_types_empty(self, mock_get_db, mock_db):
         """Test retrieval when no provider types exist"""
         mock_get_db.return_value = iter([mock_db])
-        mock_db.query.return_value.options.return_value.all.return_value = []
+        # Properly chain the query mock
+        mock_query = MagicMock()
+        mock_options = MagicMock()
+        mock_joinedload = MagicMock()
+        mock_options.return_value = mock_joinedload
+        mock_joinedload.all.return_value = []
+        mock_db.query.return_value.options = mock_options
 
         response = client.get("/api/eligibility/rules")
 
@@ -293,7 +302,17 @@ class TestUpdateProviderType:
     ):
         """Test update of non-existent provider type"""
         mock_get_db.return_value = iter([mock_db])
-        mock_db.query.return_value.filter.return_value.first.return_value = None
+        # Properly chain the query mock
+        mock_query = MagicMock()
+        mock_filter = MagicMock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.first.return_value = None
+        mock_db.query.return_value = mock_query
+        # Mock the ProviderRequirement query as well
+        mock_provider_req_query = MagicMock()
+        mock_provider_req_filter = MagicMock()
+        mock_provider_req_query.filter.return_value = mock_provider_req_filter
+        mock_provider_req_filter.all.return_value = []
 
         response = client.put(
             "/api/eligibility/rules/999", json=sample_provider_type_data
@@ -311,17 +330,26 @@ class TestDeleteProviderType:
     ):
         """Test successful deletion of provider type"""
         mock_get_db.return_value = iter([mock_db])
-        mock_db.query.return_value.filter.return_value.first.return_value = (
-            mock_provider_type_model
-        )
-        mock_db.query.return_value.filter.return_value.delete = MagicMock()
+        # Properly chain the query mocks
+        mock_query = MagicMock()
+        mock_filter = MagicMock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.first.return_value = mock_provider_type_model
+        mock_db.query.return_value = mock_query
+
+        # Mock ProviderRequirement query chain
+        mock_provider_req_query = MagicMock()
+        mock_provider_req_filter = MagicMock()
+        mock_provider_req_query.filter.return_value = mock_provider_req_filter
+        mock_provider_req_filter.delete.return_value = None
+
         mock_db.delete = MagicMock()
         mock_db.commit = MagicMock()
 
         response = client.delete("/api/eligibility/rules/1")
 
         assert response.status_code == 204
-        mock_db.delete.assert_called_once()
+        mock_db.delete.assert_called_once_with(mock_provider_type_model)
         mock_db.commit.assert_called_once()
 
     @patch("app.api.endpoints.eligibility.get_db")
