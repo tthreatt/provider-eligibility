@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -11,19 +13,27 @@ from app.db.init_db import init_db
 # Import all models to ensure they are registered with SQLAlchemy
 from app.routes.provider import router as provider_router
 
-# Initialize database tables and seed data
-db = Session(engine)
-try:
-    init_db(db)
-except Exception as e:
-    print(f"Error initializing database: {e}")
-finally:
-    db.close()
-
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database tables and seed data on app startup"""
+    # Skip initialization in test environment
+    if os.getenv("TESTING") == "true":
+        return
+
+    db = Session(engine)
+    try:
+        init_db(db)
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+    finally:
+        db.close()
+
 
 # Configure CORS
 app.add_middleware(
