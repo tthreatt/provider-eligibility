@@ -392,6 +392,8 @@ async def update_provider_type(
 
         return response_data
 
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         logger.error(f"Error updating provider type: {str(e)}", exc_info=True)

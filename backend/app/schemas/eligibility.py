@@ -100,5 +100,5 @@ class RawApiResponse(BaseModel):
 
 class EligibilityResponse(BaseModel):
     isEligible: bool
-    requirements: dict[str, bool]
+    requirements: dict[str, Any]
     rawApiResponse: dict[str, Any]
