@@ -54,6 +54,7 @@ jobs:
       - name: Run pytest
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+          TESTING: "true"
         run: |
           pytest tests/ -v --tb=short
 

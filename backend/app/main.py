@@ -23,13 +23,14 @@ app = FastAPI(
 async def startup_event():
     """Initialize database tables and seed data on app startup"""
     # Skip initialization in test environment
-    if os.getenv("TESTING") == "true":
+    if os.getenv("TESTING") == "true" or os.getenv("PYTEST_CURRENT_TEST"):
         return
 
     db = Session(engine)
     try:
         init_db(db)
     except Exception as e:
+        # Log but don't fail - allows app to start even if DB is unavailable
         print(f"Error initializing database: {e}")
     finally:
         db.close()
