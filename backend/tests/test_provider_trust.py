@@ -42,6 +42,7 @@ async def get_auth_token(client: AsyncClient) -> str:
     return token
 
 
+@pytest.mark.skip(reason="Requires external API connection - skip in CI")
 @pytest.mark.asyncio
 @pytest.mark.order(1)
 async def test_auth():
@@ -50,6 +51,7 @@ async def test_auth():
         assert token is not None, "Failed to get authentication token"
 
 
+@pytest.mark.skip(reason="Requires external API connection - skip in CI")
 @pytest.mark.asyncio
 @pytest.mark.order(2)
 async def test_search_profile():
@@ -75,6 +77,7 @@ async def test_search_profile():
         print("Profile Search Response:", data)
 
 
+@pytest.mark.skip(reason="Requires external API connection - skip in CI")
 @pytest.mark.asyncio
 @pytest.mark.order(3)
 async def test_search_sanctions():
