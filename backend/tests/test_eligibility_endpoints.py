@@ -372,12 +372,10 @@ class TestCheckEligibility:
         assert response.status_code in [200, 400, 500]
 
     @patch("app.api.endpoints.eligibility.ProviderTrustAPI")
-    @patch("app.api.endpoints.eligibility.get_db")
     def test_check_eligibility_no_provider_type(
-        self, mock_get_db, mock_provider_trust_class, mock_db, sample_provider_data
+        self, mock_provider_trust_class, mock_db, sample_provider_data
     ):
         """Test eligibility check when provider type not found in response"""
-        mock_get_db.return_value = iter([mock_db])
 
         # Mock ProviderTrustAPI with missing provider type
         provider_data_no_type = {"rawApiResponse": {"NPI Validation": {}}}
