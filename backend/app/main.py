@@ -22,18 +22,31 @@ app = FastAPI(
 @app.on_event("startup")
 async def startup_event():
     """Initialize database tables and seed data on app startup"""
-    # Skip initialization in test environment
-    if os.getenv("TESTING") == "true" or os.getenv("PYTEST_CURRENT_TEST"):
+    # Skip initialization in test environment or if pytest is running
+    if (
+        os.getenv("TESTING") == "true"
+        or os.getenv("PYTEST_CURRENT_TEST")
+        or "pytest" in os.getenv("_", "").lower()
+    ):
         return
 
-    db = Session(engine)
+    # Only initialize if we have a valid database URL (not test DB)
+    db_url = os.getenv("DATABASE_URL", "")
+    if "test_db" in db_url or not db_url:
+        return
+
     try:
-        init_db(db)
+        db = Session(engine)
+        try:
+            init_db(db)
+        except Exception as e:
+            # Log but don't fail - allows app to start even if DB is unavailable
+            print(f"Error initializing database: {e}")
+        finally:
+            db.close()
     except Exception as e:
-        # Log but don't fail - allows app to start even if DB is unavailable
-        print(f"Error initializing database: {e}")
-    finally:
-        db.close()
+        # If we can't even create a session, just log and continue
+        print(f"Could not initialize database connection: {e}")
 
 
 # Configure CORS
