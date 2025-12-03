@@ -213,7 +213,6 @@ class TestGetProviderTypes:
         """Test retrieval when no provider types exist"""
         mock_get_db.return_value = iter([mock_db])
         # Properly chain the query mock
-        mock_query = MagicMock()
         mock_options = MagicMock()
         mock_joinedload = MagicMock()
         mock_options.return_value = mock_joinedload
