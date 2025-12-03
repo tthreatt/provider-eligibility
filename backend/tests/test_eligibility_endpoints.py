@@ -12,6 +12,7 @@ from app.api.endpoints.eligibility import (
     check_registration_requirement,
     check_requirement,
 )
+from app.core.database import get_db
 from app.main import app
 from app.models.eligibility_rules import (
     BaseRequirement,
