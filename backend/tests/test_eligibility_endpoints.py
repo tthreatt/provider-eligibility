@@ -391,12 +391,10 @@ class TestCheckEligibility:
         assert response.status_code == 400
 
     @patch("app.api.endpoints.eligibility.ProviderTrustAPI")
-    @patch("app.api.endpoints.eligibility.get_db")
     def test_check_eligibility_no_rules(
-        self, mock_get_db, mock_provider_trust_class, mock_db, sample_provider_data
+        self, mock_provider_trust_class, mock_db, sample_provider_data
     ):
         """Test eligibility check when no rules found for provider type"""
-        mock_get_db.return_value = iter([mock_db])
 
         # Mock ProviderTrustAPI
         mock_provider_trust = AsyncMock()
