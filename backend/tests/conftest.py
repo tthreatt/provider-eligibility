@@ -15,9 +15,10 @@ os.environ["API_KEY"] = os.getenv("API_KEY", "test-api-key")
 import pytest
 from sqlalchemy import create_engine
 
+from app.core.database import Base
+
 # Import all models to ensure they're registered with Base.metadata
 from app.models import eligibility_rules, provider  # noqa: F401
-from app.core.database import Base
 
 
 @pytest.fixture(scope="session", autouse=True)
