@@ -34,7 +34,11 @@ def mock_db():
 @pytest.fixture(autouse=True)
 def override_get_db(mock_db):
     """Override get_db dependency for all tests"""
-    app.dependency_overrides[get_db] = lambda: iter([mock_db])
+
+    def override_db():
+        yield mock_db
+
+    app.dependency_overrides[get_db] = override_db
     yield
     app.dependency_overrides.clear()
 
