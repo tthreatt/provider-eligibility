@@ -16,7 +16,7 @@ import { RuleList } from "@/components/RuleList";
 import { AddRuleForm } from "@/components/AddRuleForm";
 import { ViewToggle } from "@/components/ViewToggle";
 import { NPISearch } from "@/components/NPISearch";
-import { SignedIn, SignedOut, SignInButton, useSignIn } from "@clerk/nextjs";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
 import {
   Card,
   CardContent,
@@ -108,20 +108,9 @@ export default function Home() {
   };
 
   const GoogleSignInButton = () => {
-    const { signIn } = useSignIn();
-
-    const handleGoogleSignIn = async () => {
-      if (!signIn) return;
-
-      try {
-        await signIn.authenticateWithRedirect({
-          strategy: "oauth_google",
-          redirectUrl: "/",
-          redirectUrlComplete: "/",
-        });
-      } catch (error) {
-        console.error("OAuth error:", error);
-      }
+    const handleGoogleSignIn = () => {
+      // Redirect to sign-in page, which will handle OAuth flow properly
+      window.location.href = "/sign-in";
     };
 
     return (
