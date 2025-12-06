@@ -126,17 +126,14 @@ export async function PUT(
     };
 
     // Send to backend
-    const response = await fetch(
-      `${BACKEND_URL}/api/eligibility/rules/${id}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-KEY": process.env.API_KEY || "",
-        },
-        body: JSON.stringify(finalData),
-      }
-    );
+    const response = await fetch(`${BACKEND_URL}/api/eligibility/rules/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": process.env.API_KEY || "",
+      },
+      body: JSON.stringify(finalData),
+    });
 
     // Get response as text first
     const responseText = await response.text();
