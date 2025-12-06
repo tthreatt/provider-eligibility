@@ -22,9 +22,15 @@ describe("RequirementDetail", () => {
         />
       );
 
-      expect(screen.getByText("Number")).toBeInTheDocument();
+      // Use test IDs for React 19 compatibility (text may be split across elements)
+      expect(
+        screen.getByTestId("detail-field-number-1669437901")
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("detail-field-status-active")
+      ).toBeInTheDocument();
+      // Verify the actual values are present
       expect(screen.getByText("1669437901")).toBeInTheDocument();
-      expect(screen.getByText("Status")).toBeInTheDocument();
       expect(screen.getByText("Active")).toBeInTheDocument();
     });
 

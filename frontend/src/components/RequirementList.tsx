@@ -41,7 +41,7 @@ const RequirementList: React.FC<RequirementListProps> = ({
   };
 
   const getStatusChips = (requirement: Requirement) => {
-    const chips: JSX.Element[] = [];
+    const chips: React.ReactElement[] = [];
 
     // Board Actions chip
     const hasBoardActions = requirement.details?.some(
