@@ -58,7 +58,7 @@ function validateProviderTypeData(data: any): {
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Get the auth session
@@ -74,6 +74,9 @@ export async function PUT(
       );
     }
 
+    // Await params in Next.js 16
+    const { id } = await params;
+
     const data = await request.json();
 
     // Convert requirements to array format if it's not already
@@ -88,13 +91,13 @@ export async function PUT(
           is_required: isRequired,
           validation_rules: {},
           base_requirement_id: 1, // This should be mapped correctly based on requirement type
-          provider_type_id: parseInt(params.id),
+          provider_type_id: parseInt(id),
         })) as BackendRequirement[]);
 
     // Ensure code exists
     const providerTypeData = {
       ...data,
-      id: params.id,
+      id: id,
       code: data.code || generateProviderTypeCode(data.name),
       requirements,
     } as BackendProviderType;
@@ -114,7 +117,7 @@ export async function PUT(
     // Update provider_type_id for each requirement
     const updatedRequirements = requirements.map((req: BackendRequirement) => ({
       ...req,
-      provider_type_id: parseInt(params.id),
+      provider_type_id: parseInt(id),
     }));
 
     const finalData: BackendProviderType = {
@@ -124,7 +127,7 @@ export async function PUT(
 
     // Send to backend
     const response = await fetch(
-      `${BACKEND_URL}/api/eligibility/rules/${params.id}`,
+      `${BACKEND_URL}/api/eligibility/rules/${id}`,
       {
         method: "PUT",
         headers: {
