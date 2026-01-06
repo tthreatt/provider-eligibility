@@ -70,6 +70,23 @@ class ProviderTrustAPI:
         if not self._token:
             await self.authenticate()
 
+        # Validate endpoint URL
+        if "/search/instant/npi" in settings.ENDPOINT_URL:
+            raise Exception(
+                f"Invalid ENDPOINT_URL: {settings.ENDPOINT_URL}. "
+                "Use '/profile/search' for profile search, not '/search/instant/npi' "
+                "(which is for sanctions checks)."
+            )
+
+        # Validate endpoint URL - catch common misconfiguration
+        if "/search/instant/npi" in settings.ENDPOINT_URL:
+            raise Exception(
+                f"Invalid ENDPOINT_URL configuration: '{settings.ENDPOINT_URL}'. "
+                "For profile search, use '/profile/search' not '/search/instant/npi'. "
+                "The '/search/instant/npi' endpoint is for sanctions checks only. "
+                "Please update your .env file: ENDPOINT_URL=/profile/search"
+            )
+
         try:
             url = f"{self.base_url}{settings.ENDPOINT_URL}"
             payload = {"npi": npi}
