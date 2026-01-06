@@ -18,10 +18,19 @@ async def fetch_provider_data(request: NPIRequest):
         api_data = await provider_trust.search_profile(request.npi)
 
         # If we get here and api_data indicates an error, raise an exception
-        if isinstance(api_data, dict) and "error" in api_data:
+        if isinstance(api_data, dict) and api_data.get("error"):
+            error_status = api_data.get("status", 500)
+            error_message = api_data.get("message", "Unknown error occurred")
+            error_details = api_data.get("details", "")
+            
+            # Include details in the error message if available
+            detail_message = error_message
+            if error_details:
+                detail_message = f"{error_message}. Details: {error_details[:200]}"
+            
             raise HTTPException(
-                status_code=api_data.get("status", 500),
-                detail=api_data.get("message", "Unknown error occurred"),
+                status_code=error_status,
+                detail=detail_message,
             )
 
         npi_validation = api_data.get("NPI Validation", {})
@@ -67,8 +76,20 @@ async def fetch_provider_data(request: NPIRequest):
             "rawApiResponse": api_data,
         }
 
+    except HTTPException:
+        # Re-raise HTTPExceptions as-is (they already have proper status codes)
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        # Log the full exception for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Unexpected error in fetch_provider_data: {str(e)}", exc_info=True)
+        
+        # Return a user-friendly error message
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Internal server error while fetching provider data: {str(e)}"
+        ) from e
 
 
 def _check_provider_eligibility(provider_data):
