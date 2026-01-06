@@ -24,29 +24,35 @@ class ProviderTrustAPI:
                     headers=self.auth_headers,
                     json={"apikey": self.api_key},
                 )
-                
+
                 # Check for HTTP errors
                 if response.status_code != 200:
                     error_text = response.text
                     try:
                         error_data = response.json()
-                        error_message = error_data.get("message", error_data.get("error", error_text))
+                        error_message = error_data.get(
+                            "message", error_data.get("error", error_text)
+                        )
                     except Exception:
                         error_message = error_text or f"HTTP {response.status_code}"
-                    
+
                     raise Exception(
                         f"ProviderTrust authentication failed: {error_message} (Status: {response.status_code})"
                     )
-                
+
                 data = response.json()
                 self._token = data.get("token")
                 if not self._token:
-                    raise Exception("ProviderTrust authentication failed: No token received")
+                    raise Exception(
+                        "ProviderTrust authentication failed: No token received"
+                    )
                 return data
         except httpx.TimeoutException as e:
             raise Exception(f"ProviderTrust authentication timed out: {str(e)}") from e
         except httpx.RequestError as e:
-            raise Exception(f"Failed to connect to ProviderTrust API for authentication: {str(e)}") from e
+            raise Exception(
+                f"Failed to connect to ProviderTrust API for authentication: {str(e)}"
+            ) from e
 
     def _get_api_headers(self):
         """Get headers with current bearer token"""
@@ -71,24 +77,26 @@ class ProviderTrustAPI:
                     headers=self._get_api_headers(),
                     json={"npis": [npi]},
                 )
-                
+
                 # Check for HTTP errors
                 if response.status_code != 200:
                     error_text = response.text
                     try:
                         error_data = response.json()
-                        error_message = error_data.get("message", error_data.get("error", error_text))
+                        error_message = error_data.get(
+                            "message", error_data.get("error", error_text)
+                        )
                     except Exception:
                         error_message = error_text or f"HTTP {response.status_code}"
-                    
+
                     # Return error structure that the calling code can handle
                     return {
                         "error": True,
                         "status": response.status_code,
                         "message": f"ProviderTrust API error: {error_message}",
-                        "details": error_text
+                        "details": error_text,
                     }
-                
+
                 try:
                     return response.json()
                 except Exception as e:
@@ -96,19 +104,19 @@ class ProviderTrustAPI:
                         "error": True,
                         "status": 500,
                         "message": f"Failed to parse ProviderTrust API response: {str(e)}",
-                        "details": response.text[:500]  # First 500 chars of response
+                        "details": response.text[:500],  # First 500 chars of response
                     }
         except httpx.TimeoutException as e:
             return {
                 "error": True,
                 "status": 504,
                 "message": "ProviderTrust API request timed out",
-                "details": str(e)
+                "details": str(e),
             }
         except httpx.RequestError as e:
             return {
                 "error": True,
                 "status": 502,
                 "message": f"Failed to connect to ProviderTrust API: {str(e)}",
-                "details": str(e)
+                "details": str(e),
             }

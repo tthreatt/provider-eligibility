@@ -98,11 +98,17 @@ export default function Home() {
             errorData = { error: text || "Failed to fetch provider data" };
           }
         } catch (parseError) {
-          console.error("Error parsing error response in handleSearch:", parseError);
+          console.error(
+            "Error parsing error response in handleSearch:",
+            parseError
+          );
           errorData = { error: "Failed to fetch provider data" };
         }
-        
-        const errorMessage = errorData.error || errorData.detail || "Failed to fetch provider data";
+
+        const errorMessage =
+          errorData.error ||
+          errorData.detail ||
+          "Failed to fetch provider data";
         console.error("handleSearch error:", {
           status: response.status,
           errorData,

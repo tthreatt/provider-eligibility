@@ -45,27 +45,33 @@ export async function POST(request: Request) {
         backendUrl: BACKEND_URL,
       });
       return NextResponse.json(
-        { 
+        {
           error: "Failed to connect to backend",
-          details: fetchError?.message || String(fetchError)
+          details: fetchError?.message || String(fetchError),
         },
         { status: 503 }
       );
     }
 
     console.log("Backend response status:", response.status);
-    console.log("Backend response headers:", Object.fromEntries(response.headers.entries()));
+    console.log(
+      "Backend response headers:",
+      Object.fromEntries(response.headers.entries())
+    );
 
     if (!response.ok) {
       // Read response as text first to avoid consuming the body
       const responseText = await response.text();
-      console.log("Backend error response body (first 1000 chars):", responseText.substring(0, 1000));
-      
+      console.log(
+        "Backend error response body (first 1000 chars):",
+        responseText.substring(0, 1000)
+      );
+
       let errorData: any = {};
       try {
         const contentType = response.headers.get("content-type");
         console.log("Response content-type:", contentType);
-        
+
         if (contentType && contentType.includes("application/json")) {
           try {
             errorData = JSON.parse(responseText);
@@ -73,23 +79,27 @@ export async function POST(request: Request) {
           } catch (jsonError) {
             // Response claims to be JSON but parsing failed - use text instead
             console.warn("Failed to parse error response as JSON:", jsonError);
-            errorData = { error: responseText || "Failed to fetch provider data" };
+            errorData = {
+              error: responseText || "Failed to fetch provider data",
+            };
           }
         } else {
-          errorData = { error: responseText || "Failed to fetch provider data" };
+          errorData = {
+            error: responseText || "Failed to fetch provider data",
+          };
         }
       } catch (parseError) {
         console.error("Error parsing error response:", parseError);
         errorData = { error: responseText || "Failed to fetch provider data" };
       }
-      
+
       // FastAPI uses 'detail' field, but also check for 'error' and 'message'
-      const errorMessage = 
-        errorData.detail || 
-        errorData.error || 
-        errorData.message || 
+      const errorMessage =
+        errorData.detail ||
+        errorData.error ||
+        errorData.message ||
         "Failed to fetch provider data";
-      
+
       console.error("Backend error response:", {
         status: response.status,
         statusText: response.statusText,
@@ -97,11 +107,15 @@ export async function POST(request: Request) {
         errorMessage,
         rawResponse: responseText.substring(0, 1000),
       });
-      
+
       return NextResponse.json(
-        { 
+        {
           error: errorMessage,
-          details: errorData.details || errorData.error || responseText.substring(0, 500) || undefined
+          details:
+            errorData.details ||
+            errorData.error ||
+            responseText.substring(0, 500) ||
+            undefined,
         },
         { status: response.status }
       );
@@ -119,9 +133,9 @@ export async function POST(request: Request) {
       name: error?.name,
     });
     return NextResponse.json(
-      { 
-        error: "Internal Server Error", 
-        details: error?.message || String(error) || "Unknown error occurred"
+      {
+        error: "Internal Server Error",
+        details: error?.message || String(error) || "Unknown error occurred",
       },
       { status: 500 }
     );

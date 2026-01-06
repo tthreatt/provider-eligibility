@@ -14,20 +14,23 @@ class NPIRequest(BaseModel):
 @router.post("/api/fetch-provider-data")
 async def fetch_provider_data(request: NPIRequest):
     import logging
+
     logger = logging.getLogger(__name__)
-    
+
     try:
         logger.info(f"Fetching provider data for NPI: {request.npi}")
-        
+
         # Use the provider_trust service to get the data
         api_data = await provider_trust.search_profile(request.npi)
 
         # Validate response is a dictionary
         if not isinstance(api_data, dict):
-            logger.error(f"ProviderTrust API returned unexpected response type: {type(api_data)}")
+            logger.error(
+                f"ProviderTrust API returned unexpected response type: {type(api_data)}"
+            )
             raise HTTPException(
                 status_code=500,
-                detail=f"ProviderTrust API returned invalid response format: {type(api_data)}"
+                detail=f"ProviderTrust API returned invalid response format: {type(api_data)}",
             )
 
         # If we get here and api_data indicates an error, raise an exception
@@ -35,17 +38,17 @@ async def fetch_provider_data(request: NPIRequest):
             error_status = api_data.get("status", 500)
             error_message = api_data.get("message", "Unknown error occurred")
             error_details = api_data.get("details", "")
-            
+
             logger.error(
                 f"ProviderTrust API returned error: status={error_status}, "
                 f"message={error_message}, details={error_details[:200] if error_details else 'None'}"
             )
-            
+
             # Include details in the error message if available
             detail_message = error_message
             if error_details:
                 detail_message = f"{error_message}. Details: {error_details[:200]}"
-            
+
             raise HTTPException(
                 status_code=error_status,
                 detail=detail_message,
@@ -100,14 +103,14 @@ async def fetch_provider_data(request: NPIRequest):
     except Exception as e:
         # Log the full exception for debugging
         logger.error(
-            f"Unexpected error in fetch_provider_data for NPI {request.npi}: {str(e)}", 
-            exc_info=True
+            f"Unexpected error in fetch_provider_data for NPI {request.npi}: {str(e)}",
+            exc_info=True,
         )
-        
+
         # Return a user-friendly error message
         raise HTTPException(
-            status_code=500, 
-            detail=f"Internal server error while fetching provider data: {str(e)}"
+            status_code=500,
+            detail=f"Internal server error while fetching provider data: {str(e)}",
         ) from e
 
 
