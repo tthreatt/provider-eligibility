@@ -37,9 +37,48 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      let errorData: any = {};
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          try {
+            errorData = await response.json();
+          } catch (jsonError) {
+            // Response claims to be JSON but parsing failed - read as text instead
+            const text = await response.text();
+            errorData = { error: text || "Failed to fetch provider data" };
+            console.warn(
+              "Failed to parse error response as JSON, using text:",
+              text.substring(0, 200)
+            );
+          }
+        } else {
+          const text = await response.text();
+          errorData = { error: text || "Failed to fetch provider data" };
+        }
+      } catch (parseError) {
+        console.error("Error parsing error response:", parseError);
+        errorData = { error: "Failed to fetch provider data" };
+      }
+      
+      // FastAPI uses 'detail' field, but also check for 'error' and 'message'
+      const errorMessage = 
+        errorData.detail || 
+        errorData.error || 
+        errorData.message || 
+        "Failed to fetch provider data";
+      
+      console.error("Backend error response:", {
+        status: response.status,
+        errorData,
+        errorMessage,
+      });
+      
       return NextResponse.json(
-        { error: errorData.error || "Failed to fetch provider data" },
+        { 
+          error: errorMessage,
+          details: errorData.details || errorData.error || undefined
+        },
         { status: response.status }
       );
     }
@@ -48,9 +87,17 @@ export async function POST(request: Request) {
     const processedData = processApiResponse(data);
     return NextResponse.json(processedData);
   } catch (error: any) {
-    console.error("API Route Error:", error);
+    console.error("API Route Error in fetch-provider-data:", {
+      error,
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+    });
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { 
+        error: "Internal Server Error", 
+        details: error?.message || String(error) || "Unknown error occurred"
+      },
       { status: 500 }
     );
   }

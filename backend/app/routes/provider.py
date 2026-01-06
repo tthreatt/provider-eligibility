@@ -13,15 +13,33 @@ class NPIRequest(BaseModel):
 
 @router.post("/api/fetch-provider-data")
 async def fetch_provider_data(request: NPIRequest):
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
+        logger.info(f"Fetching provider data for NPI: {request.npi}")
+        
         # Use the provider_trust service to get the data
         api_data = await provider_trust.search_profile(request.npi)
 
+        # Validate response is a dictionary
+        if not isinstance(api_data, dict):
+            logger.error(f"ProviderTrust API returned unexpected response type: {type(api_data)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"ProviderTrust API returned invalid response format: {type(api_data)}"
+            )
+
         # If we get here and api_data indicates an error, raise an exception
-        if isinstance(api_data, dict) and api_data.get("error"):
+        if api_data.get("error"):
             error_status = api_data.get("status", 500)
             error_message = api_data.get("message", "Unknown error occurred")
             error_details = api_data.get("details", "")
+            
+            logger.error(
+                f"ProviderTrust API returned error: status={error_status}, "
+                f"message={error_message}, details={error_details[:200] if error_details else 'None'}"
+            )
             
             # Include details in the error message if available
             detail_message = error_message
@@ -81,9 +99,10 @@ async def fetch_provider_data(request: NPIRequest):
         raise
     except Exception as e:
         # Log the full exception for debugging
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Unexpected error in fetch_provider_data: {str(e)}", exc_info=True)
+        logger.error(
+            f"Unexpected error in fetch_provider_data for NPI {request.npi}: {str(e)}", 
+            exc_info=True
+        )
         
         # Return a user-friendly error message
         raise HTTPException(

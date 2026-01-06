@@ -88,8 +88,27 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch provider data");
+        let errorData: any = {};
+        try {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            errorData = await response.json();
+          } else {
+            const text = await response.text();
+            errorData = { error: text || "Failed to fetch provider data" };
+          }
+        } catch (parseError) {
+          console.error("Error parsing error response in handleSearch:", parseError);
+          errorData = { error: "Failed to fetch provider data" };
+        }
+        
+        const errorMessage = errorData.error || errorData.detail || "Failed to fetch provider data";
+        console.error("handleSearch error:", {
+          status: response.status,
+          errorData,
+          errorMessage,
+        });
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
