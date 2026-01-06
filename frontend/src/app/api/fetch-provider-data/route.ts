@@ -27,38 +27,60 @@ export async function POST(request: Request) {
     const { npi } = body;
 
     // Call your backend API
-    const response = await fetch(`${BACKEND_URL}/api/fetch-provider-data`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-API-KEY": API_KEY || "",
-      },
-      body: JSON.stringify({ npi }),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${BACKEND_URL}/api/fetch-provider-data`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-KEY": API_KEY || "",
+        },
+        body: JSON.stringify({ npi }),
+      });
+    } catch (fetchError: any) {
+      console.error("Network error calling backend:", {
+        error: fetchError,
+        message: fetchError?.message,
+        stack: fetchError?.stack,
+        backendUrl: BACKEND_URL,
+      });
+      return NextResponse.json(
+        { 
+          error: "Failed to connect to backend",
+          details: fetchError?.message || String(fetchError)
+        },
+        { status: 503 }
+      );
+    }
+
+    console.log("Backend response status:", response.status);
+    console.log("Backend response headers:", Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
+      // Read response as text first to avoid consuming the body
+      const responseText = await response.text();
+      console.log("Backend error response body (first 1000 chars):", responseText.substring(0, 1000));
+      
       let errorData: any = {};
       try {
         const contentType = response.headers.get("content-type");
+        console.log("Response content-type:", contentType);
+        
         if (contentType && contentType.includes("application/json")) {
           try {
-            errorData = await response.json();
+            errorData = JSON.parse(responseText);
+            console.log("Parsed error JSON:", errorData);
           } catch (jsonError) {
-            // Response claims to be JSON but parsing failed - read as text instead
-            const text = await response.text();
-            errorData = { error: text || "Failed to fetch provider data" };
-            console.warn(
-              "Failed to parse error response as JSON, using text:",
-              text.substring(0, 200)
-            );
+            // Response claims to be JSON but parsing failed - use text instead
+            console.warn("Failed to parse error response as JSON:", jsonError);
+            errorData = { error: responseText || "Failed to fetch provider data" };
           }
         } else {
-          const text = await response.text();
-          errorData = { error: text || "Failed to fetch provider data" };
+          errorData = { error: responseText || "Failed to fetch provider data" };
         }
       } catch (parseError) {
         console.error("Error parsing error response:", parseError);
-        errorData = { error: "Failed to fetch provider data" };
+        errorData = { error: responseText || "Failed to fetch provider data" };
       }
       
       // FastAPI uses 'detail' field, but also check for 'error' and 'message'
@@ -70,19 +92,22 @@ export async function POST(request: Request) {
       
       console.error("Backend error response:", {
         status: response.status,
+        statusText: response.statusText,
         errorData,
         errorMessage,
+        rawResponse: responseText.substring(0, 1000),
       });
       
       return NextResponse.json(
         { 
           error: errorMessage,
-          details: errorData.details || errorData.error || undefined
+          details: errorData.details || errorData.error || responseText.substring(0, 500) || undefined
         },
         { status: response.status }
       );
     }
 
+    // For successful responses, parse as JSON
     const data = await response.json();
     const processedData = processApiResponse(data);
     return NextResponse.json(processedData);

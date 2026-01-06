@@ -23,41 +23,82 @@ import { processEligibilityData } from "../utils/eligibilityProcessor";
 
 // Provider service functions
 const fetchProviderData = async (npi: string, token: string | null) => {
+  console.log("fetchProviderData called with NPI:", npi);
+  
   // Use Next.js API route instead of calling backend directly
-  const response = await fetch("/api/fetch-provider-data", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ npi }),
-    credentials: "include", // Include cookies for Clerk auth
-  });
+  let response: Response;
+  try {
+    response = await fetch("/api/fetch-provider-data", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ npi }),
+      credentials: "include", // Include cookies for Clerk auth
+    });
+  } catch (networkError: any) {
+    console.error("Network error in fetchProviderData:", {
+      error: networkError,
+      message: networkError?.message,
+      stack: networkError?.stack,
+    });
+    throw new Error(`Network error: ${networkError?.message || "Failed to connect to server"}`);
+  }
+
+  console.log("fetchProviderData response status:", response.status, response.statusText);
 
   if (!response.ok) {
+    // Read response as text first
+    const responseText = await response.text();
+    console.log("fetchProviderData error response body:", responseText.substring(0, 500));
+    
     let errorData: any = {};
     try {
       const contentType = response.headers.get("content-type");
+      console.log("fetchProviderData response content-type:", contentType);
+      
       if (contentType && contentType.includes("application/json")) {
-        errorData = await response.json();
+        try {
+          errorData = JSON.parse(responseText);
+          console.log("fetchProviderData parsed error JSON:", errorData);
+        } catch (jsonError) {
+          console.warn("fetchProviderData: Failed to parse JSON, using text:", jsonError);
+          errorData = { error: responseText || "Failed to fetch provider data" };
+        }
       } else {
-        const text = await response.text();
-        errorData = { error: text || "Failed to fetch provider data" };
+        errorData = { error: responseText || "Failed to fetch provider data" };
       }
     } catch (parseError) {
       console.error("Error parsing error response in fetchProviderData:", parseError);
-      errorData = { error: "Failed to fetch provider data" };
+      errorData = { error: responseText || "Failed to fetch provider data" };
     }
     
-    const errorMessage = errorData.error || errorData.detail || "Failed to fetch provider data";
+    const errorMessage = errorData.error || errorData.detail || errorData.message || "Failed to fetch provider data";
+    const errorDetails = errorData.details || errorData.error || responseText.substring(0, 200);
+    
     console.error("fetchProviderData error:", {
       status: response.status,
+      statusText: response.statusText,
       errorData,
       errorMessage,
+      errorDetails,
+      rawResponse: responseText.substring(0, 1000),
     });
-    throw new Error(errorMessage);
+    
+    const fullError = new Error(errorMessage);
+    (fullError as any).status = response.status;
+    (fullError as any).details = errorDetails;
+    throw fullError;
   }
 
-  return response.json();
+  try {
+    const data = await response.json();
+    console.log("fetchProviderData success, data keys:", Object.keys(data));
+    return data;
+  } catch (jsonError) {
+    console.error("fetchProviderData: Failed to parse success response as JSON:", jsonError);
+    throw new Error("Invalid response format from server");
+  }
 };
 
 const fetchEligibilityRules = async (token: string | null) => {
@@ -126,8 +167,46 @@ export function NPISearch({ loading = false }: NPISearchProps) {
 
       setSearchResult(processedResult);
     } catch (err) {
-      console.error("Search error:", err);
-      setError(err instanceof Error ? err.message : "An error occurred");
+      console.error("Search error in NPISearch:", {
+        error: err,
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+      
+      // Extract error message with more detail
+      let errorMessage = "An error occurred";
+      let errorDetails: string | undefined;
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+        errorDetails = (err as any).details;
+        
+        // If it's a generic message, try to get more details from the error
+        if (errorMessage === "Failed to fetch provider data") {
+          if (errorDetails) {
+            errorMessage = `${errorMessage}: ${errorDetails}`;
+          } else if ((err as any).cause) {
+            errorMessage = `${errorMessage}: ${(err as any).cause}`;
+          }
+        }
+        
+        // Include status code if available
+        if ((err as any).status) {
+          errorMessage = `[${(err as any).status}] ${errorMessage}`;
+        }
+      } else if (typeof err === "string") {
+        errorMessage = err;
+      } else if (err && typeof err === "object" && "message" in err) {
+        errorMessage = String((err as any).message);
+        errorDetails = (err as any).details;
+      }
+      
+      // Combine message and details
+      const fullErrorMessage = errorDetails 
+        ? `${errorMessage}\n\nDetails: ${errorDetails}`
+        : errorMessage;
+      
+      setError(fullErrorMessage);
     } finally {
       setIsSearching(false);
     }
