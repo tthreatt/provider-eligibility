@@ -23,6 +23,17 @@ async def fetch_provider_data(request: NPIRequest):
         # Use the provider_trust service to get the data
         api_data = await provider_trust.search_profile(request.npi)
 
+        # Handle list responses - ProviderTrust API may return a list of results
+        if isinstance(api_data, list):
+            if len(api_data) == 0:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No provider data found for NPI: {request.npi}",
+                )
+            # Use the first result if it's a list
+            api_data = api_data[0]
+            logger.info(f"ProviderTrust API returned list, using first result")
+
         # Validate response is a dictionary
         if not isinstance(api_data, dict):
             logger.error(
