@@ -71,11 +71,14 @@ class ProviderTrustAPI:
             await self.authenticate()
 
         try:
+            url = f"{self.base_url}{settings.ENDPOINT_URL}"
+            payload = {"npi": npi}
+
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    f"{self.base_url}{settings.ENDPOINT_URL}",
+                    url,
                     headers=self._get_api_headers(),
-                    json={"npis": [npi]},
+                    json=payload,
                 )
 
                 # Check for HTTP errors
