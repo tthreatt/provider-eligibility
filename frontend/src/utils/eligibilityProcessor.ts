@@ -396,10 +396,10 @@ export function createProviderProfile(rawData: any): ProviderProfile {
   // Handle nested rawApiResponse structure: rawApiResponse.rawApiResponse['NPI Validation']
   const innerRawApiResponse =
     rawData?.rawApiResponse?.rawApiResponse || rawData?.rawApiResponse || {};
-  
+
   // Try to extract from the new ProviderTrust API structure first
   let extractedData = extractProviderDataFromRawResponse(innerRawApiResponse);
-  
+
   // Fallback to old structure if new extraction didn't find data
   const npiValidation = innerRawApiResponse["NPI Validation"] || {};
   if (!extractedData.npi && npiValidation?.npi) {
@@ -410,7 +410,8 @@ export function createProviderProfile(rawData: any): ProviderProfile {
       providerType: extractedData.providerType,
       licenses: innerRawApiResponse["Licenses"] || extractedData.licenses,
       entityType: npiValidation?.entityType || extractedData.entityType,
-      enumerationDate: npiValidation?.enumerationDate || extractedData.enumerationDate,
+      enumerationDate:
+        npiValidation?.enumerationDate || extractedData.enumerationDate,
     };
   }
 
@@ -445,7 +446,7 @@ export function createProviderProfile(rawData: any): ProviderProfile {
   let mailingPhone = "";
   let practiceAddress = "";
   let practicePhone = "";
-  
+
   if (npiRecord?.sourceJson) {
     const sourceJson = npiRecord.sourceJson;
     if (sourceJson._businessMailingAddress) {
@@ -454,7 +455,9 @@ export function createProviderProfile(rawData: any): ProviderProfile {
         addr._addressOfResidence,
         addr._addressLine2OfResidence,
         `${addr._cityOfResidence}, ${addr._stateOfResidence} ${addr._zipOfResidence}`,
-      ].filter(Boolean).join(", ");
+      ]
+        .filter(Boolean)
+        .join(", ");
       mailingPhone = addr._telephoneOfResidence || "";
     }
     if (sourceJson._businessPracticeLocationAddress) {
@@ -463,7 +466,9 @@ export function createProviderProfile(rawData: any): ProviderProfile {
         addr._addressOfResidence,
         addr._addressLine2OfResidence,
         `${addr._cityOfResidence}, ${addr._stateOfResidence} ${addr._zipOfResidence}`,
-      ].filter(Boolean).join(", ");
+      ]
+        .filter(Boolean)
+        .join(", ");
       practicePhone = addr._telephoneOfResidence || "";
     }
   }
@@ -565,7 +570,7 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
 
   if (npiRecord?.sourceJson) {
     const sourceJson = npiRecord.sourceJson;
-    
+
     // Extract NPI
     if (!npi && sourceJson._npi) {
       npi = sourceJson._npi;
@@ -579,7 +584,7 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
       const middleName = providerInfo._middleName || "";
       const prefix = providerInfo._namePrefix || "";
       const suffix = providerInfo._nameSuffix || "";
-      
+
       // Build full name
       const nameParts = [
         prefix,
@@ -593,7 +598,8 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
 
     // Extract entity type
     if (sourceJson._entityTypeCode) {
-      entityType = sourceJson._entityTypeCode === "1" ? "Individual" : "Organization";
+      entityType =
+        sourceJson._entityTypeCode === "1" ? "Individual" : "Organization";
     }
 
     // Extract enumeration date
@@ -607,11 +613,15 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
     }
 
     // Extract provider type from taxonomy licenses
-    if (sourceJson._npiTaxonomyLicenses && sourceJson._npiTaxonomyLicenses.length > 0) {
-      const primaryTaxonomy = sourceJson._npiTaxonomyLicenses.find(
-        (tax: any) => tax._healthCareProviderPrimaryTaxonomySwitch === "Y"
-      ) || sourceJson._npiTaxonomyLicenses[0];
-      
+    if (
+      sourceJson._npiTaxonomyLicenses &&
+      sourceJson._npiTaxonomyLicenses.length > 0
+    ) {
+      const primaryTaxonomy =
+        sourceJson._npiTaxonomyLicenses.find(
+          (tax: any) => tax._healthCareProviderPrimaryTaxonomySwitch === "Y"
+        ) || sourceJson._npiTaxonomyLicenses[0];
+
       if (primaryTaxonomy?._providerTaxonomyGrouping) {
         providerType = primaryTaxonomy._providerTaxonomyGrouping;
       }
@@ -619,7 +629,11 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
   }
 
   // Fallback: try to get name from names array if not found
-  if (!providerName && rawApiResponse.names && rawApiResponse.names.length > 0) {
+  if (
+    !providerName &&
+    rawApiResponse.names &&
+    rawApiResponse.names.length > 0
+  ) {
     const nameObj = rawApiResponse.names[0];
     const firstName = nameObj.firstName || "";
     const lastName = nameObj.lastName || "";
@@ -635,15 +649,25 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
         const sourceJson = record.sourceJson;
         const license: any = {
           category: "",
-          type: sourceJson.LicenseType || sourceJson.VerifiedLicenseNumber || "Unknown",
-          number: sourceJson.VerifiedLicenseNumber || sourceJson.LicenseNumber || "Unknown",
+          type:
+            sourceJson.LicenseType ||
+            sourceJson.VerifiedLicenseNumber ||
+            "Unknown",
+          number:
+            sourceJson.VerifiedLicenseNumber ||
+            sourceJson.LicenseNumber ||
+            "Unknown",
           issuer: sourceJson.Issuer || sourceJson.LicenseSource || "Unknown",
-          status: sourceJson.VerifiedLicenseStatus || sourceJson.CalculatedLicenseStatus || "Unknown",
+          status:
+            sourceJson.VerifiedLicenseStatus ||
+            sourceJson.CalculatedLicenseStatus ||
+            "Unknown",
           expirationDate: sourceJson.VerifiedLicenseExpiration || null,
           issueDate: sourceJson.VerifiedLicenseIssued || null,
           boardActions: [],
           hasBoardAction: sourceJson.VerifiedLicenseAction || false,
-          primarySourceLastVerifiedDate: record.lastVerified || record.primarySourceLastUpdated || null,
+          primarySourceLastVerifiedDate:
+            record.lastVerified || record.primarySourceLastUpdated || null,
           source: record.origin || sourceJson.LicenseSource || "Unknown",
         };
 
@@ -676,7 +700,9 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
     rawApiResponse.Licenses.forEach((license: any) => {
       // Handle both old format (with details) and new format (without details)
       // Merge top-level properties with details, with details taking precedence
-      const licenseData = license.details ? { ...license, ...license.details } : license;
+      const licenseData = license.details
+        ? { ...license, ...license.details }
+        : license;
       const normalizedLicense: any = {
         category: licenseData.category || "",
         type: licenseData.type || "Unknown",
@@ -686,14 +712,20 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
         expirationDate: licenseData.expirationDate || null,
         issueDate: licenseData.issueDate || null,
         boardActions: licenseData.boardActions || [],
-        hasBoardAction: licenseData.hasBoardAction !== undefined ? licenseData.hasBoardAction : false,
-        primarySourceLastVerifiedDate: licenseData.primarySourceLastVerifiedDate || null,
+        hasBoardAction:
+          licenseData.hasBoardAction !== undefined
+            ? licenseData.hasBoardAction
+            : false,
+        primarySourceLastVerifiedDate:
+          licenseData.primarySourceLastVerifiedDate || null,
         source: licenseData.source || "Unknown",
       };
 
       // Normalize category to uppercase with underscores
       if (normalizedLicense.category) {
-        normalizedLicense.category = normalizedLicense.category.toUpperCase().replace(/-/g, "_");
+        normalizedLicense.category = normalizedLicense.category
+          .toUpperCase()
+          .replace(/-/g, "_");
       }
 
       // Add additional info if available
@@ -703,7 +735,8 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
 
       // Only add if not already added from records (check by number only, as issuer might differ)
       const alreadyExists = licenses.some(
-        (l: any) => l.number === normalizedLicense.number && l.number !== "Unknown"
+        (l: any) =>
+          l.number === normalizedLicense.number && l.number !== "Unknown"
       );
       if (!alreadyExists && normalizedLicense.number !== "Unknown") {
         licenses.push(normalizedLicense);
@@ -714,7 +747,9 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
   return {
     providerName,
     npi,
-    providerType: providerType ? normalizeProviderType(providerType) : undefined,
+    providerType: providerType
+      ? normalizeProviderType(providerType)
+      : undefined,
     entityType,
     enumerationDate,
     updateDate,
@@ -727,21 +762,28 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
   // Handle nested rawApiResponse structure: rawApiResponse.rawApiResponse['NPI Validation']
   const innerRawApiResponse =
     rawData?.rawApiResponse?.rawApiResponse || rawData?.rawApiResponse || {};
-  
+
   // Try to extract from the new ProviderTrust API structure first
   let extractedData = extractProviderDataFromRawResponse(innerRawApiResponse);
-  
+
   // Fallback to old structure if new extraction didn't find data
   const npiValidationData = innerRawApiResponse["NPI Validation"] || {};
   if (!extractedData.npi && npiValidationData?.npi) {
     // If we have licenses from the old format, normalize them
     let normalizedLicenses = extractedData.licenses;
-    if (innerRawApiResponse["Licenses"] && Array.isArray(innerRawApiResponse["Licenses"])) {
+    if (
+      innerRawApiResponse["Licenses"] &&
+      Array.isArray(innerRawApiResponse["Licenses"])
+    ) {
       // Normalize licenses from old format
       innerRawApiResponse["Licenses"].forEach((license: any) => {
-        const licenseData = license.details ? { ...license, ...license.details } : license;
+        const licenseData = license.details
+          ? { ...license, ...license.details }
+          : license;
         const normalizedLicense: any = {
-          category: (licenseData.category || "").toUpperCase().replace(/-/g, "_"),
+          category: (licenseData.category || "")
+            .toUpperCase()
+            .replace(/-/g, "_"),
           type: licenseData.type || "Unknown",
           number: licenseData.number || "Unknown",
           issuer: licenseData.issuer || "Unknown",
@@ -749,8 +791,12 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
           expirationDate: licenseData.expirationDate || null,
           issueDate: licenseData.issueDate || null,
           boardActions: licenseData.boardActions || [],
-          hasBoardAction: licenseData.hasBoardAction !== undefined ? licenseData.hasBoardAction : false,
-          primarySourceLastVerifiedDate: licenseData.primarySourceLastVerifiedDate || null,
+          hasBoardAction:
+            licenseData.hasBoardAction !== undefined
+              ? licenseData.hasBoardAction
+              : false,
+          primarySourceLastVerifiedDate:
+            licenseData.primarySourceLastVerifiedDate || null,
           source: licenseData.source || "Unknown",
         };
         if (licenseData.additionalInfo) {
@@ -758,22 +804,25 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
         }
         // Only add if not already in normalizedLicenses
         const alreadyExists = normalizedLicenses.some(
-          (l: any) => l.number === normalizedLicense.number && l.number !== "Unknown"
+          (l: any) =>
+            l.number === normalizedLicense.number && l.number !== "Unknown"
         );
         if (!alreadyExists && normalizedLicense.number !== "Unknown") {
           normalizedLicenses.push(normalizedLicense);
         }
       });
     }
-    
+
     extractedData = {
-      providerName: npiValidationData?.providerName || extractedData.providerName,
+      providerName:
+        npiValidationData?.providerName || extractedData.providerName,
       npi: npiValidationData?.npi || extractedData.npi,
       updateDate: npiValidationData?.updateDate || extractedData.updateDate,
       providerType: extractedData.providerType,
       licenses: normalizedLicenses,
       entityType: npiValidationData?.entityType || extractedData.entityType,
-      enumerationDate: npiValidationData?.enumerationDate || extractedData.enumerationDate,
+      enumerationDate:
+        npiValidationData?.enumerationDate || extractedData.enumerationDate,
     };
   }
 
@@ -810,7 +859,7 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
   let mailingPhone = "";
   let practiceAddress = "";
   let practicePhone = "";
-  
+
   if (npiRecord?.sourceJson) {
     const sourceJson = npiRecord.sourceJson;
     if (sourceJson._businessMailingAddress) {
@@ -819,7 +868,9 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
         addr._addressOfResidence,
         addr._addressLine2OfResidence,
         `${addr._cityOfResidence}, ${addr._stateOfResidence} ${addr._zipOfResidence}`,
-      ].filter(Boolean).join(", ");
+      ]
+        .filter(Boolean)
+        .join(", ");
       mailingPhone = addr._telephoneOfResidence || "";
     }
     if (sourceJson._businessPracticeLocationAddress) {
@@ -828,7 +879,9 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
         addr._addressOfResidence,
         addr._addressLine2OfResidence,
         `${addr._cityOfResidence}, ${addr._stateOfResidence} ${addr._zipOfResidence}`,
-      ].filter(Boolean).join(", ");
+      ]
+        .filter(Boolean)
+        .join(", ");
       practicePhone = addr._telephoneOfResidence || "";
     }
   }
@@ -903,7 +956,9 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
   if (npiDetails.licenses && npiDetails.licenses.length > 0) {
     // First check for active state licenses
     const stateLicenses = npiDetails.licenses.filter((license: License) => {
-      const category = (license.category || "").toUpperCase().replace(/-/g, "_");
+      const category = (license.category || "")
+        .toUpperCase()
+        .replace(/-/g, "_");
       return category === "STATE_LICENSE";
     });
 
@@ -949,7 +1004,9 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
     // Check DEA registration
     console.log("All licenses:", npiDetails.licenses);
     const deaRegistrations = npiDetails.licenses.filter((license: License) => {
-      const category = (license.category || "").toUpperCase().replace(/-/g, "_");
+      const category = (license.category || "")
+        .toUpperCase()
+        .replace(/-/g, "_");
       const isCorrectCategory =
         category === "CONTROLLED_SUBSTANCE_REGISTRATION";
       const isDeaIssuer = license.issuer?.toUpperCase().includes("DEA");
@@ -1005,7 +1062,9 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
     // Check Board Certification
     const boardCertifications = npiDetails.licenses.filter(
       (license: License) => {
-        const category = (license.category || "").toUpperCase().replace(/-/g, "_");
+        const category = (license.category || "")
+          .toUpperCase()
+          .replace(/-/g, "_");
         const isCorrectCategory = category === "BOARD_CERTIFICATION";
         const isAbmsIssuer =
           license.issuer?.toUpperCase().includes("ABMS") ||

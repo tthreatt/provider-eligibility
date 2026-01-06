@@ -320,11 +320,11 @@ describe("NPISearch Component", () => {
 
     await waitFor(() => {
       // Component displays "Provider is Not Eligible" for invalid provider types
-      expect(
-        screen.getByText(/Provider is Not Eligible/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Provider is Not Eligible/i)).toBeInTheDocument();
       // And shows the invalid provider type (may appear multiple times)
-      const providerTypeElements = screen.getAllByText(/Invalid Provider Type/i);
+      const providerTypeElements = screen.getAllByText(
+        /Invalid Provider Type/i
+      );
       expect(providerTypeElements.length).toBeGreaterThan(0);
     });
   });
@@ -395,7 +395,9 @@ describe("NPISearch Component", () => {
       expect(screen.getByTestId("board-actions-title")).toBeInTheDocument();
       const boardActionElement = screen.getByTestId("board-action-1-text");
       expect(boardActionElement).toBeInTheDocument();
-      expect(boardActionElement).toHaveTextContent(/Warning issued on 2022-01-15/);
+      expect(boardActionElement).toHaveTextContent(
+        /Warning issued on 2022-01-15/
+      );
     });
   });
 });
