@@ -8,9 +8,7 @@ from app.core.database import engine
 
 def test_connection():
     """Test database connection"""
-    print(
-        f"Attempting to connect to database with URL: {os.getenv('DATABASE_URL')}"
-    )
+    print(f"Attempting to connect to database with URL: {os.getenv('DATABASE_URL')}")
     with engine.connect() as connection:
         result = connection.execute(text("SELECT 1"))
         print("Database connection successful!")

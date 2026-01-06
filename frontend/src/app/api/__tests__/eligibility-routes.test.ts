@@ -247,11 +247,23 @@ describe("API Routes", () => {
       mockAuth.mockResolvedValue({ userId: "user123" });
 
       const mockProviderData = {
+        isEligible: true,
+        requirements: {
+          stateLicense: true,
+          deaCds: true,
+          boardCertification: true,
+          providerType: "Allopathic & Osteopathic Physicians",
+        },
         rawApiResponse: {
           "NPI Validation": {
             providerName: "Test Provider",
             npi: "1104025329",
             updateDate: "2025-01-01",
+            licenses: [
+              {
+                code: "2084N0402X - Allopathic & Osteopathic Physicians",
+              },
+            ],
           },
           Licenses: [
             {
@@ -269,6 +281,7 @@ describe("API Routes", () => {
         headers: {
           get: (name: string) =>
             name === "content-type" ? "application/json" : null,
+          entries: () => [["content-type", "application/json"]],
         },
         json: async () => mockProviderData,
         text: async () => JSON.stringify(mockProviderData),
