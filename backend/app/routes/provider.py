@@ -32,7 +32,7 @@ async def fetch_provider_data(request: NPIRequest):
                 )
             # Use the first result if it's a list
             api_data = api_data[0]
-            logger.info(f"ProviderTrust API returned list, using first result")
+            logger.info("ProviderTrust API returned list, using first result")
 
         # Validate response is a dictionary
         if not isinstance(api_data, dict):
