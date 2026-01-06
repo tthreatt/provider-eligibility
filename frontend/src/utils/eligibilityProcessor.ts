@@ -396,11 +396,26 @@ export function createProviderProfile(rawData: any): ProviderProfile {
   // Handle nested rawApiResponse structure: rawApiResponse.rawApiResponse['NPI Validation']
   const innerRawApiResponse =
     rawData?.rawApiResponse?.rawApiResponse || rawData?.rawApiResponse || {};
+  
+  // Try to extract from the new ProviderTrust API structure first
+  let extractedData = extractProviderDataFromRawResponse(innerRawApiResponse);
+  
+  // Fallback to old structure if new extraction didn't find data
   const npiValidation = innerRawApiResponse["NPI Validation"] || {};
-  const licenses = innerRawApiResponse["Licenses"] || [];
+  if (!extractedData.npi && npiValidation?.npi) {
+    extractedData = {
+      providerName: npiValidation?.providerName || extractedData.providerName,
+      npi: npiValidation?.npi || extractedData.npi,
+      updateDate: npiValidation?.updateDate || extractedData.updateDate,
+      providerType: extractedData.providerType,
+      licenses: innerRawApiResponse["Licenses"] || extractedData.licenses,
+      entityType: npiValidation?.entityType || extractedData.entityType,
+      enumerationDate: npiValidation?.enumerationDate || extractedData.enumerationDate,
+    };
+  }
 
   // Interpret all licenses
-  const interpretedLicenses = licenses.map(interpretLicense);
+  const interpretedLicenses = extractedData.licenses.map(interpretLicense);
 
   // Group licenses by category
   const stateLicenses = interpretedLicenses.filter(
@@ -422,20 +437,51 @@ export function createProviderProfile(rawData: any): ProviderProfile {
       ].includes(l.category)
   );
 
+  // Extract contact information from NPI record if available
+  const npiRecord = innerRawApiResponse.records?.find(
+    (record: any) => record.sourceType === "NPI"
+  );
+  let mailingAddress = "";
+  let mailingPhone = "";
+  let practiceAddress = "";
+  let practicePhone = "";
+  
+  if (npiRecord?.sourceJson) {
+    const sourceJson = npiRecord.sourceJson;
+    if (sourceJson._businessMailingAddress) {
+      const addr = sourceJson._businessMailingAddress;
+      mailingAddress = [
+        addr._addressOfResidence,
+        addr._addressLine2OfResidence,
+        `${addr._cityOfResidence}, ${addr._stateOfResidence} ${addr._zipOfResidence}`,
+      ].filter(Boolean).join(", ");
+      mailingPhone = addr._telephoneOfResidence || "";
+    }
+    if (sourceJson._businessPracticeLocationAddress) {
+      const addr = sourceJson._businessPracticeLocationAddress;
+      practiceAddress = [
+        addr._addressOfResidence,
+        addr._addressLine2OfResidence,
+        `${addr._cityOfResidence}, ${addr._stateOfResidence} ${addr._zipOfResidence}`,
+      ].filter(Boolean).join(", ");
+      practicePhone = addr._telephoneOfResidence || "";
+    }
+  }
+
   return {
     basic: {
-      name: npiValidation?.providerName || "",
-      npi: npiValidation?.npi || "",
-      providerType: npiValidation?.providerType || "",
-      entityType: npiValidation?.entityType || "",
-      enumerationDate: npiValidation?.enumerationDate || "",
-      lastUpdate: npiValidation?.updateDate || "",
+      name: extractedData.providerName,
+      npi: extractedData.npi,
+      providerType: extractedData.providerType || "",
+      entityType: extractedData.entityType,
+      enumerationDate: extractedData.enumerationDate,
+      lastUpdate: extractedData.updateDate,
     },
     contact: {
-      mailingAddress: npiValidation?.mailingAddress || "",
-      mailingPhone: npiValidation?.mailingPhone || "",
-      practiceAddress: npiValidation?.practiceAddress || "",
-      practicePhone: npiValidation?.practicePhone || "",
+      mailingAddress: mailingAddress || npiValidation?.mailingAddress || "",
+      mailingPhone: mailingPhone || npiValidation?.mailingPhone || "",
+      practiceAddress: practiceAddress || npiValidation?.practiceAddress || "",
+      practicePhone: practicePhone || npiValidation?.practicePhone || "",
     },
     licenses: {
       stateLicenses,
@@ -478,17 +524,262 @@ function normalizeProviderType(type: string): string {
   return typeMap[normalized] || type;
 }
 
+/**
+ * Extracts provider data from the ProviderTrust API response structure
+ * Handles the actual API format with npi, names, and records arrays
+ */
+function extractProviderDataFromRawResponse(rawApiResponse: any): {
+  providerName: string;
+  npi: string;
+  providerType: string | undefined;
+  entityType: string;
+  enumerationDate: string;
+  updateDate: string;
+  licenses: any[];
+} {
+  if (!rawApiResponse || typeof rawApiResponse !== "object") {
+    return {
+      providerName: "",
+      npi: "",
+      providerType: undefined,
+      entityType: "",
+      enumerationDate: "",
+      updateDate: new Date().toISOString(),
+      licenses: [],
+    };
+  }
+
+  // Extract NPI from top level or from records
+  let npi = rawApiResponse.npi || "";
+  let providerName = "";
+  let entityType = "";
+  let enumerationDate = "";
+  let updateDate = new Date().toISOString();
+  let providerType: string | undefined = undefined;
+  const licenses: any[] = [];
+
+  // Find the NPI record which contains the most complete information
+  const npiRecord = rawApiResponse.records?.find(
+    (record: any) => record.sourceType === "NPI"
+  );
+
+  if (npiRecord?.sourceJson) {
+    const sourceJson = npiRecord.sourceJson;
+    
+    // Extract NPI
+    if (!npi && sourceJson._npi) {
+      npi = sourceJson._npi;
+    }
+
+    // Extract provider name from NPI provider info
+    if (sourceJson._npiProviderInfo) {
+      const providerInfo = sourceJson._npiProviderInfo;
+      const firstName = providerInfo._firstName || "";
+      const lastName = providerInfo._lastName || "";
+      const middleName = providerInfo._middleName || "";
+      const prefix = providerInfo._namePrefix || "";
+      const suffix = providerInfo._nameSuffix || "";
+      
+      // Build full name
+      const nameParts = [
+        prefix,
+        firstName,
+        middleName,
+        lastName,
+        suffix,
+      ].filter(Boolean);
+      providerName = nameParts.join(" ").trim();
+    }
+
+    // Extract entity type
+    if (sourceJson._entityTypeCode) {
+      entityType = sourceJson._entityTypeCode === "1" ? "Individual" : "Organization";
+    }
+
+    // Extract enumeration date
+    if (sourceJson._providerEnumerationDate) {
+      enumerationDate = sourceJson._providerEnumerationDate;
+    }
+
+    // Extract update date
+    if (sourceJson._lastUpdateDate) {
+      updateDate = new Date(sourceJson._lastUpdateDate).toISOString();
+    }
+
+    // Extract provider type from taxonomy licenses
+    if (sourceJson._npiTaxonomyLicenses && sourceJson._npiTaxonomyLicenses.length > 0) {
+      const primaryTaxonomy = sourceJson._npiTaxonomyLicenses.find(
+        (tax: any) => tax._healthCareProviderPrimaryTaxonomySwitch === "Y"
+      ) || sourceJson._npiTaxonomyLicenses[0];
+      
+      if (primaryTaxonomy?._providerTaxonomyGrouping) {
+        providerType = primaryTaxonomy._providerTaxonomyGrouping;
+      }
+    }
+  }
+
+  // Fallback: try to get name from names array if not found
+  if (!providerName && rawApiResponse.names && rawApiResponse.names.length > 0) {
+    const nameObj = rawApiResponse.names[0];
+    const firstName = nameObj.firstName || "";
+    const lastName = nameObj.lastName || "";
+    const middleName = nameObj.middleName || "";
+    const nameParts = [firstName, middleName, lastName].filter(Boolean);
+    providerName = nameParts.join(" ").trim();
+  }
+
+  // Extract licenses from records (new API structure)
+  if (rawApiResponse.records && Array.isArray(rawApiResponse.records)) {
+    rawApiResponse.records.forEach((record: any) => {
+      if (record.sourceType === "LICENSE" && record.sourceJson) {
+        const sourceJson = record.sourceJson;
+        const license: any = {
+          category: "",
+          type: sourceJson.LicenseType || sourceJson.VerifiedLicenseNumber || "Unknown",
+          number: sourceJson.VerifiedLicenseNumber || sourceJson.LicenseNumber || "Unknown",
+          issuer: sourceJson.Issuer || sourceJson.LicenseSource || "Unknown",
+          status: sourceJson.VerifiedLicenseStatus || sourceJson.CalculatedLicenseStatus || "Unknown",
+          expirationDate: sourceJson.VerifiedLicenseExpiration || null,
+          issueDate: sourceJson.VerifiedLicenseIssued || null,
+          boardActions: [],
+          hasBoardAction: sourceJson.VerifiedLicenseAction || false,
+          primarySourceLastVerifiedDate: record.lastVerified || record.primarySourceLastUpdated || null,
+          source: record.origin || sourceJson.LicenseSource || "Unknown",
+        };
+
+        // Determine category based on issuer and type
+        if (sourceJson.LicenseCategory) {
+          license.category = sourceJson.LicenseCategory;
+        } else if (sourceJson.Issuer?.toUpperCase().includes("DEA")) {
+          license.category = "CONTROLLED_SUBSTANCE_REGISTRATION";
+        } else if (
+          sourceJson.LicenseType?.toLowerCase().includes("board") ||
+          sourceJson.Issuer?.toUpperCase().includes("ABMS")
+        ) {
+          license.category = "BOARD_CERTIFICATION";
+        } else {
+          license.category = "STATE_LICENSE";
+        }
+
+        // Add additional info if available
+        if (sourceJson.LicenseAdditionalInfo) {
+          license.additionalInfo = sourceJson.LicenseAdditionalInfo;
+        }
+
+        licenses.push(license);
+      }
+    });
+  }
+
+  // Also check for licenses in the old format (from "Licenses" array with details property)
+  if (rawApiResponse.Licenses && Array.isArray(rawApiResponse.Licenses)) {
+    rawApiResponse.Licenses.forEach((license: any) => {
+      // Handle both old format (with details) and new format (without details)
+      // Merge top-level properties with details, with details taking precedence
+      const licenseData = license.details ? { ...license, ...license.details } : license;
+      const normalizedLicense: any = {
+        category: licenseData.category || "",
+        type: licenseData.type || "Unknown",
+        number: licenseData.number || "Unknown",
+        issuer: licenseData.issuer || "Unknown",
+        status: licenseData.status || "Unknown",
+        expirationDate: licenseData.expirationDate || null,
+        issueDate: licenseData.issueDate || null,
+        boardActions: licenseData.boardActions || [],
+        hasBoardAction: licenseData.hasBoardAction !== undefined ? licenseData.hasBoardAction : false,
+        primarySourceLastVerifiedDate: licenseData.primarySourceLastVerifiedDate || null,
+        source: licenseData.source || "Unknown",
+      };
+
+      // Normalize category to uppercase with underscores
+      if (normalizedLicense.category) {
+        normalizedLicense.category = normalizedLicense.category.toUpperCase().replace(/-/g, "_");
+      }
+
+      // Add additional info if available
+      if (licenseData.additionalInfo) {
+        normalizedLicense.additionalInfo = licenseData.additionalInfo;
+      }
+
+      // Only add if not already added from records (check by number only, as issuer might differ)
+      const alreadyExists = licenses.some(
+        (l: any) => l.number === normalizedLicense.number && l.number !== "Unknown"
+      );
+      if (!alreadyExists && normalizedLicense.number !== "Unknown") {
+        licenses.push(normalizedLicense);
+      }
+    });
+  }
+
+  return {
+    providerName,
+    npi,
+    providerType: providerType ? normalizeProviderType(providerType) : undefined,
+    entityType,
+    enumerationDate,
+    updateDate,
+    licenses,
+  };
+}
+
 export function processEligibilityData(rawData: any): ProcessedEligibility {
   // Extract data from the raw API response with proper null checks
   // Handle nested rawApiResponse structure: rawApiResponse.rawApiResponse['NPI Validation']
   const innerRawApiResponse =
     rawData?.rawApiResponse?.rawApiResponse || rawData?.rawApiResponse || {};
+  
+  // Try to extract from the new ProviderTrust API structure first
+  let extractedData = extractProviderDataFromRawResponse(innerRawApiResponse);
+  
+  // Fallback to old structure if new extraction didn't find data
   const npiValidationData = innerRawApiResponse["NPI Validation"] || {};
-  const licenses = innerRawApiResponse["Licenses"] || [];
+  if (!extractedData.npi && npiValidationData?.npi) {
+    // If we have licenses from the old format, normalize them
+    let normalizedLicenses = extractedData.licenses;
+    if (innerRawApiResponse["Licenses"] && Array.isArray(innerRawApiResponse["Licenses"])) {
+      // Normalize licenses from old format
+      innerRawApiResponse["Licenses"].forEach((license: any) => {
+        const licenseData = license.details ? { ...license, ...license.details } : license;
+        const normalizedLicense: any = {
+          category: (licenseData.category || "").toUpperCase().replace(/-/g, "_"),
+          type: licenseData.type || "Unknown",
+          number: licenseData.number || "Unknown",
+          issuer: licenseData.issuer || "Unknown",
+          status: licenseData.status || "Unknown",
+          expirationDate: licenseData.expirationDate || null,
+          issueDate: licenseData.issueDate || null,
+          boardActions: licenseData.boardActions || [],
+          hasBoardAction: licenseData.hasBoardAction !== undefined ? licenseData.hasBoardAction : false,
+          primarySourceLastVerifiedDate: licenseData.primarySourceLastVerifiedDate || null,
+          source: licenseData.source || "Unknown",
+        };
+        if (licenseData.additionalInfo) {
+          normalizedLicense.additionalInfo = licenseData.additionalInfo;
+        }
+        // Only add if not already in normalizedLicenses
+        const alreadyExists = normalizedLicenses.some(
+          (l: any) => l.number === normalizedLicense.number && l.number !== "Unknown"
+        );
+        if (!alreadyExists && normalizedLicense.number !== "Unknown") {
+          normalizedLicenses.push(normalizedLicense);
+        }
+      });
+    }
+    
+    extractedData = {
+      providerName: npiValidationData?.providerName || extractedData.providerName,
+      npi: npiValidationData?.npi || extractedData.npi,
+      updateDate: npiValidationData?.updateDate || extractedData.updateDate,
+      providerType: extractedData.providerType,
+      licenses: normalizedLicenses,
+      entityType: npiValidationData?.entityType || extractedData.entityType,
+      enumerationDate: npiValidationData?.enumerationDate || extractedData.enumerationDate,
+    };
+  }
 
   // Extract and normalize provider type
   const rawProviderType =
-    rawData?.requirements?.providerType || npiValidationData?.providerName;
+    rawData?.requirements?.providerType || extractedData.providerType;
   const providerType = rawProviderType
     ? normalizeProviderType(rawProviderType)
     : undefined;
@@ -496,19 +787,69 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
   console.log("Processing provider data:", {
     rawProviderType,
     normalizedType: providerType,
-    npiValidationData,
-    licenses,
+    extractedData,
+    innerRawApiResponse: Object.keys(innerRawApiResponse),
   });
 
   // Ensure we always have a valid npiDetails object
   const npiDetails = {
-    providerName: npiValidationData?.providerName || "",
-    npi: npiValidationData?.npi || "",
-    updateDate: npiValidationData?.updateDate || new Date().toISOString(),
+    providerName: extractedData.providerName,
+    npi: extractedData.npi,
+    updateDate: extractedData.updateDate,
     providerType: providerType,
-    licenses: licenses,
-    entityType: npiValidationData?.entityType || "",
-    enumerationDate: npiValidationData?.enumerationDate || "",
+    licenses: extractedData.licenses,
+    entityType: extractedData.entityType,
+    enumerationDate: extractedData.enumerationDate,
+  };
+
+  // Extract contact information from NPI record for backward compatibility
+  const npiRecord = innerRawApiResponse.records?.find(
+    (record: any) => record.sourceType === "NPI"
+  );
+  let mailingAddress = "";
+  let mailingPhone = "";
+  let practiceAddress = "";
+  let practicePhone = "";
+  
+  if (npiRecord?.sourceJson) {
+    const sourceJson = npiRecord.sourceJson;
+    if (sourceJson._businessMailingAddress) {
+      const addr = sourceJson._businessMailingAddress;
+      mailingAddress = [
+        addr._addressOfResidence,
+        addr._addressLine2OfResidence,
+        `${addr._cityOfResidence}, ${addr._stateOfResidence} ${addr._zipOfResidence}`,
+      ].filter(Boolean).join(", ");
+      mailingPhone = addr._telephoneOfResidence || "";
+    }
+    if (sourceJson._businessPracticeLocationAddress) {
+      const addr = sourceJson._businessPracticeLocationAddress;
+      practiceAddress = [
+        addr._addressOfResidence,
+        addr._addressLine2OfResidence,
+        `${addr._cityOfResidence}, ${addr._stateOfResidence} ${addr._zipOfResidence}`,
+      ].filter(Boolean).join(", ");
+      practicePhone = addr._telephoneOfResidence || "";
+    }
+  }
+
+  // Create backward-compatible rawApiResponse structure
+  const backwardCompatibleRawApiResponse = {
+    ...innerRawApiResponse,
+    "NPI Validation": {
+      ...innerRawApiResponse["NPI Validation"],
+      providerName: npiDetails.providerName,
+      npi: npiDetails.npi,
+      updateDate: npiDetails.updateDate,
+      providerType: npiDetails.providerType,
+      entityType: npiDetails.entityType,
+      enumerationDate: npiDetails.enumerationDate,
+      mailingAddress,
+      mailingPhone,
+      practiceAddress,
+      practicePhone,
+    },
+    Licenses: npiDetails.licenses,
   };
 
   const npiValidation: NPIValidation = {
@@ -521,9 +862,8 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
     licenses: npiDetails.licenses,
     entityType: npiDetails.entityType,
     enumerationDate: npiDetails.enumerationDate,
-    // Include the full raw response (with fallback to empty object)
-    // Preserve the nested structure for backward compatibility
-    rawApiResponse: rawData?.rawApiResponse || {},
+    // Include the full raw response with backward-compatible structure
+    rawApiResponse: backwardCompatibleRawApiResponse,
   };
 
   // Process requirements based on provider type and licenses
@@ -562,9 +902,10 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
   // Process license requirements if available
   if (npiDetails.licenses && npiDetails.licenses.length > 0) {
     // First check for active state licenses
-    const stateLicenses = npiDetails.licenses.filter(
-      (license: License) => license.category === "STATE_LICENSE"
-    );
+    const stateLicenses = npiDetails.licenses.filter((license: License) => {
+      const category = (license.category || "").toUpperCase().replace(/-/g, "_");
+      return category === "STATE_LICENSE";
+    });
 
     const hasActiveStateLicense = stateLicenses.some((license: License) => {
       const isActive = license.status?.toLowerCase() === "Active";
@@ -608,8 +949,9 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
     // Check DEA registration
     console.log("All licenses:", npiDetails.licenses);
     const deaRegistrations = npiDetails.licenses.filter((license: License) => {
+      const category = (license.category || "").toUpperCase().replace(/-/g, "_");
       const isCorrectCategory =
-        license.category === "CONTROLLED_SUBSTANCE_REGISTRATION";
+        category === "CONTROLLED_SUBSTANCE_REGISTRATION";
       const isDeaIssuer = license.issuer?.toUpperCase().includes("DEA");
       return isCorrectCategory && isDeaIssuer;
     });
@@ -663,7 +1005,8 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
     // Check Board Certification
     const boardCertifications = npiDetails.licenses.filter(
       (license: License) => {
-        const isCorrectCategory = license.category === "BOARD_CERTIFICATION";
+        const category = (license.category || "").toUpperCase().replace(/-/g, "_");
+        const isCorrectCategory = category === "BOARD_CERTIFICATION";
         const isAbmsIssuer =
           license.issuer?.toUpperCase().includes("ABMS") ||
           license.issuer?.includes("American Board of Medical Specialties");
@@ -717,8 +1060,8 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
     });
   }
 
-  // Use the API's eligibility determination
-  const isEligible = rawData.isEligible;
+  // Use the API's eligibility determination, default to false if undefined
+  const isEligible = rawData.isEligible ?? false;
 
   // Add detailed validation messages
   const requiredRequirements = requirements.filter(

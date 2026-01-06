@@ -319,9 +319,13 @@ describe("NPISearch Component", () => {
     fireEvent.click(screen.getByRole("button", { name: /check eligibility/i }));
 
     await waitFor(() => {
+      // Component displays "Provider is Not Eligible" for invalid provider types
       expect(
-        screen.getByText(/No matching provider type found/)
+        screen.getByText(/Provider is Not Eligible/i)
       ).toBeInTheDocument();
+      // And shows the invalid provider type (may appear multiple times)
+      const providerTypeElements = screen.getAllByText(/Invalid Provider Type/i);
+      expect(providerTypeElements.length).toBeGreaterThan(0);
     });
   });
 
@@ -339,7 +343,7 @@ describe("NPISearch Component", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("Failed to fetch provider data")
+        screen.getByText(/Failed to fetch provider data/i)
       ).toBeInTheDocument();
     });
   });
@@ -388,14 +392,10 @@ describe("NPISearch Component", () => {
     fireEvent.click(screen.getByRole("button", { name: /check eligibility/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("Board Actions History")).toBeInTheDocument();
-      const boardActionElement = screen.getAllByText(
-        /Warning issued on 2022-01-15/
-      )[0];
+      expect(screen.getByTestId("board-actions-title")).toBeInTheDocument();
+      const boardActionElement = screen.getByTestId("board-action-1-text");
       expect(boardActionElement).toBeInTheDocument();
-      expect(
-        boardActionElement.closest(".MuiListItemText-primary")
-      ).toHaveTextContent(/Warning issued on 2022-01-15/);
+      expect(boardActionElement).toHaveTextContent(/Warning issued on 2022-01-15/);
     });
   });
 });
