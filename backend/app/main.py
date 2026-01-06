@@ -59,6 +59,18 @@ app.add_middleware(
 )
 
 
+# Root endpoint
+@app.get("/")
+async def root():
+    return {
+        "message": "Provider Eligibility API",
+        "version": settings.VERSION,
+        "docs": "/docs",
+        "health": "/health",
+        "api": "/api",
+    }
+
+
 # Health check endpoint
 @app.get("/health")
 async def health_check():
