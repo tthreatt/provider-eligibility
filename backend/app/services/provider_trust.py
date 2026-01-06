@@ -70,25 +70,22 @@ class ProviderTrustAPI:
         if not self._token:
             await self.authenticate()
 
-        # Validate endpoint URL
-        if "/search/instant/npi" in settings.ENDPOINT_URL:
-            raise Exception(
-                f"Invalid ENDPOINT_URL: {settings.ENDPOINT_URL}. "
-                "Use '/profile/search' for profile search, not '/search/instant/npi' "
-                "(which is for sanctions checks)."
-            )
+        # Auto-correct common misconfiguration
+        # /search/instant/npi is for sanctions checks, not profile search
+        endpoint_url = settings.ENDPOINT_URL
+        if "/search/instant/npi" in endpoint_url:
+            import logging
 
-        # Validate endpoint URL - catch common misconfiguration
-        if "/search/instant/npi" in settings.ENDPOINT_URL:
-            raise Exception(
-                f"Invalid ENDPOINT_URL configuration: '{settings.ENDPOINT_URL}'. "
-                "For profile search, use '/profile/search' not '/search/instant/npi'. "
-                "The '/search/instant/npi' endpoint is for sanctions checks only. "
-                "Please update your .env file: ENDPOINT_URL=/profile/search"
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"ENDPOINT_URL is incorrectly set to '{endpoint_url}'. "
+                "Auto-correcting to '/profile/search' for profile search. "
+                "Please update your Vercel environment variable: ENDPOINT_URL=/profile/search"
             )
+            endpoint_url = "/profile/search"
 
         try:
-            url = f"{self.base_url}{settings.ENDPOINT_URL}"
+            url = f"{self.base_url}{endpoint_url}"
             payload = {"npi": npi}
 
             async with httpx.AsyncClient(timeout=30.0) as client:
