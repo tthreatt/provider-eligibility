@@ -124,8 +124,11 @@ export async function POST(request: Request) {
     // For successful responses, parse as JSON and return the backend response directly
     // The backend already returns the data in the correct format with rawApiResponse
     const data = await response.json();
-    console.log("Backend response data:", JSON.stringify(data, null, 2).substring(0, 500));
-    
+    console.log(
+      "Backend response data:",
+      JSON.stringify(data, null, 2).substring(0, 500)
+    );
+
     // Return the backend response directly - processEligibilityData will handle the processing
     return NextResponse.json(data);
   } catch (error: any) {
