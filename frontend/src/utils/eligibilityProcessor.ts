@@ -542,7 +542,15 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
   updateDate: string;
   licenses: any[];
 } {
+  console.log("=== extractProviderDataFromRawResponse ===");
+  console.log("Input type:", typeof rawApiResponse);
+  console.log(
+    "Input keys:",
+    rawApiResponse ? Object.keys(rawApiResponse) : "null/undefined"
+  );
+
   if (!rawApiResponse || typeof rawApiResponse !== "object") {
+    console.warn("Invalid rawApiResponse input, returning empty data");
     return {
       providerName: "",
       npi: "",
@@ -563,17 +571,30 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
   let providerType: string | undefined = undefined;
   const licenses: any[] = [];
 
+  console.log("Initial NPI from top level:", npi);
+  console.log("Has records array:", Array.isArray(rawApiResponse.records));
+  console.log("Has names array:", Array.isArray(rawApiResponse.names));
+  console.log("Has 'NPI Validation':", !!rawApiResponse["NPI Validation"]);
+  console.log("Has Licenses array:", Array.isArray(rawApiResponse.Licenses));
+
   // Find the NPI record which contains the most complete information
   const npiRecord = rawApiResponse.records?.find(
     (record: any) => record.sourceType === "NPI"
   );
 
+  console.log("NPI record found:", !!npiRecord);
+  if (npiRecord) {
+    console.log("NPI record has sourceJson:", !!npiRecord.sourceJson);
+  }
+
   if (npiRecord?.sourceJson) {
     const sourceJson = npiRecord.sourceJson;
+    console.log("Extracting from NPI record sourceJson");
 
     // Extract NPI
     if (!npi && sourceJson._npi) {
       npi = sourceJson._npi;
+      console.log("Extracted NPI from sourceJson._npi:", npi);
     }
 
     // Extract provider name from NPI provider info
@@ -594,22 +615,29 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
         suffix,
       ].filter(Boolean);
       providerName = nameParts.join(" ").trim();
+      console.log(
+        "Extracted provider name from _npiProviderInfo:",
+        providerName
+      );
     }
 
     // Extract entity type
     if (sourceJson._entityTypeCode) {
       entityType =
         sourceJson._entityTypeCode === "1" ? "Individual" : "Organization";
+      console.log("Extracted entity type:", entityType);
     }
 
     // Extract enumeration date
     if (sourceJson._providerEnumerationDate) {
       enumerationDate = sourceJson._providerEnumerationDate;
+      console.log("Extracted enumeration date:", enumerationDate);
     }
 
     // Extract update date
     if (sourceJson._lastUpdateDate) {
       updateDate = new Date(sourceJson._lastUpdateDate).toISOString();
+      console.log("Extracted update date:", updateDate);
     }
 
     // Extract provider type from taxonomy licenses
@@ -624,6 +652,7 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
 
       if (primaryTaxonomy?._providerTaxonomyGrouping) {
         providerType = primaryTaxonomy._providerTaxonomyGrouping;
+        console.log("Extracted provider type from taxonomy:", providerType);
       }
     }
   }
@@ -640,11 +669,35 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
     const middleName = nameObj.middleName || "";
     const nameParts = [firstName, middleName, lastName].filter(Boolean);
     providerName = nameParts.join(" ").trim();
+    console.log("Extracted provider name from names array:", providerName);
+  }
+
+  // Fallback: try legacy "NPI Validation" structure
+  if (!providerName && rawApiResponse["NPI Validation"]) {
+    const npiValidation = rawApiResponse["NPI Validation"];
+    providerName = npiValidation.providerName || "";
+    if (!npi && npiValidation.npi) {
+      npi = npiValidation.npi;
+    }
+    if (!entityType && npiValidation.entityType) {
+      entityType = npiValidation.entityType;
+    }
+    if (!enumerationDate && npiValidation.enumerationDate) {
+      enumerationDate = npiValidation.enumerationDate;
+    }
+    if (!updateDate && npiValidation.updateDate) {
+      updateDate = npiValidation.updateDate;
+    }
+    console.log("Extracted data from legacy NPI Validation structure");
   }
 
   // Extract licenses from records (new API structure)
   if (rawApiResponse.records && Array.isArray(rawApiResponse.records)) {
-    rawApiResponse.records.forEach((record: any) => {
+    console.log(
+      "Processing licenses from records array, count:",
+      rawApiResponse.records.length
+    );
+    rawApiResponse.records.forEach((record: any, index: number) => {
       if (record.sourceType === "LICENSE" && record.sourceJson) {
         const sourceJson = record.sourceJson;
         const license: any = {
@@ -691,6 +744,13 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
         }
 
         licenses.push(license);
+        console.log(`Added license ${index + 1}:`, {
+          category: license.category,
+          type: license.type,
+          number: license.number,
+          issuer: license.issuer,
+          status: license.status,
+        });
       }
     });
   }
@@ -744,7 +804,7 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
     });
   }
 
-  return {
+  const result = {
     providerName,
     npi,
     providerType: providerType
@@ -755,28 +815,55 @@ function extractProviderDataFromRawResponse(rawApiResponse: any): {
     updateDate,
     licenses,
   };
+
+  console.log("=== Extraction Results ===");
+  console.log("Provider Name:", result.providerName || "(empty)");
+  console.log("NPI:", result.npi || "(empty)");
+  console.log("Provider Type:", result.providerType || "(undefined)");
+  console.log("Entity Type:", result.entityType || "(empty)");
+  console.log("Enumeration Date:", result.enumerationDate || "(empty)");
+  console.log("Update Date:", result.updateDate);
+  console.log("Licenses count:", result.licenses.length);
+  console.log("=== End Extraction Results ===");
+
+  return result;
 }
 
 export function processEligibilityData(rawData: any): ProcessedEligibility {
-  // Extract data from the raw API response with proper null checks
-  // Handle nested rawApiResponse structure: rawApiResponse.rawApiResponse['NPI Validation']
-  const innerRawApiResponse =
-    rawData?.rawApiResponse?.rawApiResponse || rawData?.rawApiResponse || {};
+  console.log("=== processEligibilityData ===");
+  console.log(
+    "rawData keys:",
+    rawData ? Object.keys(rawData) : "null/undefined"
+  );
+  console.log("Has rawApiResponse:", !!rawData?.rawApiResponse);
 
-  // Try to extract from the new ProviderTrust API structure first
-  let extractedData = extractProviderDataFromRawResponse(innerRawApiResponse);
+  // Extract data from the raw API response with proper null checks
+  // Use rawApiResponse directly - no nested fallback needed
+  const rawApiResponse = rawData?.rawApiResponse;
+
+  if (!rawApiResponse) {
+    console.error("ERROR: rawData.rawApiResponse is missing!");
+    throw new Error("Invalid data structure: rawApiResponse is required");
+  }
+
+  console.log("rawApiResponse type:", typeof rawApiResponse);
+  console.log("rawApiResponse keys:", Object.keys(rawApiResponse));
+
+  // Extract from the ProviderTrust API structure
+  let extractedData = extractProviderDataFromRawResponse(rawApiResponse);
 
   // Fallback to old structure if new extraction didn't find data
-  const npiValidationData = innerRawApiResponse["NPI Validation"] || {};
+  const npiValidationData = rawApiResponse["NPI Validation"] || {};
   if (!extractedData.npi && npiValidationData?.npi) {
+    console.log("Using fallback to legacy NPI Validation structure");
     // If we have licenses from the old format, normalize them
     let normalizedLicenses = extractedData.licenses;
     if (
-      innerRawApiResponse["Licenses"] &&
-      Array.isArray(innerRawApiResponse["Licenses"])
+      rawApiResponse["Licenses"] &&
+      Array.isArray(rawApiResponse["Licenses"])
     ) {
       // Normalize licenses from old format
-      innerRawApiResponse["Licenses"].forEach((license: any) => {
+      rawApiResponse["Licenses"].forEach((license: any) => {
         const licenseData = license.details
           ? { ...license, ...license.details }
           : license;
@@ -837,22 +924,36 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
     rawProviderType,
     normalizedType: providerType,
     extractedData,
-    innerRawApiResponse: Object.keys(innerRawApiResponse),
+    rawApiResponseKeys: Object.keys(rawApiResponse),
   });
 
-  // Ensure we always have a valid npiDetails object
+  // Validate extracted data - ensure we have at least an NPI
+  if (!extractedData.npi && !npiValidationData?.npi) {
+    console.warn("WARNING: No NPI found in extracted data or legacy structure");
+  }
+
+  // Ensure we always have a valid npiDetails object with fallback values
   const npiDetails = {
-    providerName: extractedData.providerName,
-    npi: extractedData.npi,
-    updateDate: extractedData.updateDate,
-    providerType: providerType,
-    licenses: extractedData.licenses,
-    entityType: extractedData.entityType,
-    enumerationDate: extractedData.enumerationDate,
+    providerName: extractedData.providerName || "Not Available",
+    npi: extractedData.npi || npiValidationData?.npi || "",
+    updateDate: extractedData.updateDate || new Date().toISOString(),
+    providerType: providerType || undefined,
+    licenses: extractedData.licenses || [],
+    entityType: extractedData.entityType || "Not Available",
+    enumerationDate: extractedData.enumerationDate || "",
   };
 
+  // Log validation results
+  console.log("npiDetails validation:", {
+    hasProviderName:
+      !!npiDetails.providerName && npiDetails.providerName !== "Not Available",
+    hasNPI: !!npiDetails.npi,
+    hasProviderType: !!npiDetails.providerType,
+    licensesCount: npiDetails.licenses.length,
+  });
+
   // Extract contact information from NPI record for backward compatibility
-  const npiRecord = innerRawApiResponse.records?.find(
+  const npiRecord = rawApiResponse.records?.find(
     (record: any) => record.sourceType === "NPI"
   );
   let mailingAddress = "";
@@ -888,9 +989,9 @@ export function processEligibilityData(rawData: any): ProcessedEligibility {
 
   // Create backward-compatible rawApiResponse structure
   const backwardCompatibleRawApiResponse = {
-    ...innerRawApiResponse,
+    ...rawApiResponse,
     "NPI Validation": {
-      ...innerRawApiResponse["NPI Validation"],
+      ...rawApiResponse["NPI Validation"],
       providerName: npiDetails.providerName,
       npi: npiDetails.npi,
       updateDate: npiDetails.updateDate,

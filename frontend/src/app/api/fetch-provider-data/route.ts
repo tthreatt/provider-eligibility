@@ -124,10 +124,95 @@ export async function POST(request: Request) {
     // For successful responses, parse as JSON and return the backend response directly
     // The backend already returns the data in the correct format with rawApiResponse
     const data = await response.json();
+
+    // Comprehensive logging to understand the actual API response structure
+    console.log("=== Backend Response Structure Analysis ===");
+    console.log("Top-level keys:", Object.keys(data));
+    console.log("Has rawApiResponse:", !!data.rawApiResponse);
+    console.log("Has isEligible:", "isEligible" in data);
+    console.log("Has requirements:", !!data.requirements);
+
+    if (data.rawApiResponse) {
+      console.log("rawApiResponse type:", typeof data.rawApiResponse);
+      console.log("rawApiResponse keys:", Object.keys(data.rawApiResponse));
+
+      // Check for nested rawApiResponse
+      if (data.rawApiResponse.rawApiResponse) {
+        console.log("WARNING: Nested rawApiResponse detected!");
+        console.log(
+          "Nested rawApiResponse keys:",
+          Object.keys(data.rawApiResponse.rawApiResponse)
+        );
+      }
+
+      // Check for ProviderTrust API structure (npi, names, records)
+      if (data.rawApiResponse.npi) {
+        console.log("ProviderTrust API structure detected (has 'npi' field)");
+        console.log("NPI:", data.rawApiResponse.npi);
+        console.log(
+          "Has 'names' array:",
+          Array.isArray(data.rawApiResponse.names)
+        );
+        console.log(
+          "Has 'records' array:",
+          Array.isArray(data.rawApiResponse.records)
+        );
+        if (data.rawApiResponse.names?.length > 0) {
+          console.log("First name object:", data.rawApiResponse.names[0]);
+        }
+        if (data.rawApiResponse.records?.length > 0) {
+          console.log("Records count:", data.rawApiResponse.records.length);
+          console.log(
+            "Record sourceTypes:",
+            data.rawApiResponse.records.map((r: any) => r.sourceType)
+          );
+        }
+      }
+
+      // Check for legacy structure (NPI Validation)
+      if (data.rawApiResponse["NPI Validation"]) {
+        console.log("Legacy structure detected (has 'NPI Validation' field)");
+        const npiValidation = data.rawApiResponse["NPI Validation"];
+        console.log("NPI Validation keys:", Object.keys(npiValidation));
+        console.log("NPI Validation npi:", npiValidation.npi);
+        console.log("NPI Validation providerName:", npiValidation.providerName);
+      }
+
+      // Check for Licenses array
+      if (Array.isArray(data.rawApiResponse.Licenses)) {
+        console.log(
+          "Licenses array found, count:",
+          data.rawApiResponse.Licenses.length
+        );
+        if (data.rawApiResponse.Licenses.length > 0) {
+          console.log(
+            "First license structure:",
+            JSON.stringify(data.rawApiResponse.Licenses[0], null, 2).substring(
+              0,
+              300
+            )
+          );
+        }
+      }
+    }
+
     console.log(
-      "Backend response data:",
-      JSON.stringify(data, null, 2).substring(0, 500)
+      "Full response structure (first 2000 chars):",
+      JSON.stringify(data, null, 2).substring(0, 2000)
     );
+    console.log("=== End Structure Analysis ===");
+
+    // Validate that rawApiResponse exists
+    if (!data.rawApiResponse) {
+      console.error("ERROR: Backend response missing rawApiResponse field!");
+      return NextResponse.json(
+        {
+          error: "Invalid response format",
+          details: "Backend response missing rawApiResponse field",
+        },
+        { status: 500 }
+      );
+    }
 
     // Return the backend response directly - processEligibilityData will handle the processing
     return NextResponse.json(data);

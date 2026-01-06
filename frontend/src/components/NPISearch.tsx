@@ -203,8 +203,24 @@ export function NPISearch({ loading = false }: NPISearchProps) {
 
       console.log("Eligibility rules:", eligibilityRules);
 
+      // Validate rawProviderData structure before processing
+      if (!rawProviderData.rawApiResponse) {
+        throw new Error(
+          "Invalid API response: missing rawApiResponse field. Please check the backend API response structure."
+        );
+      }
+
       // Use processEligibilityData to properly structure the data
-      const processedResult = processEligibilityData(rawProviderData);
+      let processedResult;
+      try {
+        processedResult = processEligibilityData(rawProviderData);
+      } catch (processError: any) {
+        console.error("Error processing eligibility data:", processError);
+        throw new Error(
+          `Failed to process eligibility data: ${processError.message || String(processError)}`
+        );
+      }
+
       console.log("Processed result:", processedResult);
       console.log(
         "Processed result requirements:",
@@ -212,8 +228,20 @@ export function NPISearch({ loading = false }: NPISearchProps) {
       );
       console.log("Processed result isEligible:", processedResult?.isEligible);
 
+      // Validate processed result structure
       if (!processedResult) {
-        throw new Error("Failed to process eligibility data");
+        throw new Error(
+          "Failed to process eligibility data: result is null or undefined"
+        );
+      }
+
+      if (
+        !processedResult.rawValidation ||
+        !processedResult.rawValidation.npiDetails
+      ) {
+        console.warn(
+          "Processed result missing rawValidation.npiDetails, but continuing..."
+        );
       }
 
       setSearchResult(processedResult);
@@ -307,58 +335,37 @@ export function NPISearch({ loading = false }: NPISearchProps) {
 
           {/* Provider Basic Info */}
           <Box sx={{ mb: 3 }}>
-            {/* Helper to get nested NPI Validation data */}
+            {/* Use standardized npiDetails structure from processEligibilityData */}
             {(() => {
-              const npiValidation =
-                searchResult.rawValidation.rawApiResponse?.rawApiResponse?.[
-                  "NPI Validation"
-                ] ||
-                searchResult.rawValidation.rawApiResponse?.["NPI Validation"] ||
-                {};
+              const npiDetails = searchResult.rawValidation.npiDetails || {};
               return (
                 <>
                   <Typography
                     variant="h6"
                     sx={{ color: "text.primary", mb: 1, fontWeight: "medium" }}
                   >
-                    Provider:{" "}
-                    {searchResult.rawValidation.npiDetails?.providerName ||
-                      searchResult.rawValidation.providerName ||
-                      npiValidation.providerName ||
-                      "N/A"}
+                    Provider: {npiDetails.providerName || "Not Available"}
                   </Typography>
 
                   <Typography
                     variant="subtitle1"
                     sx={{ color: "text.secondary" }}
                   >
-                    NPI:{" "}
-                    {searchResult.rawValidation.npiDetails?.npi ||
-                      searchResult.rawValidation.npi ||
-                      npiValidation.npi ||
-                      "N/A"}
+                    NPI: {npiDetails.npi || "Not Available"}
                   </Typography>
 
                   <Typography
                     variant="subtitle1"
                     sx={{ color: "text.secondary" }}
                   >
-                    Provider Type:{" "}
-                    {searchResult.rawValidation.npiDetails?.providerType ||
-                      searchResult.rawValidation.providerType ||
-                      npiValidation.licenses?.[0]?.code?.split(" - ")?.[1] ||
-                      "N/A"}
+                    Provider Type: {npiDetails.providerType || "Unknown"}
                   </Typography>
 
                   <Typography
                     variant="subtitle1"
                     sx={{ color: "text.secondary" }}
                   >
-                    Entity Type:{" "}
-                    {searchResult.rawValidation.npiDetails?.entityType ||
-                      searchResult.rawValidation.entityType ||
-                      npiValidation.entityType ||
-                      "N/A"}
+                    Entity Type: {npiDetails.entityType || "Not Available"}
                   </Typography>
                 </>
               );
@@ -377,12 +384,11 @@ export function NPISearch({ loading = false }: NPISearchProps) {
               Contact Information
             </Typography>
             {(() => {
-              // Handle nested rawApiResponse structure
-              const innerRawApiResponse =
-                searchResult.rawValidation.rawApiResponse?.rawApiResponse ||
-                searchResult.rawValidation.rawApiResponse ||
-                {};
-              const npiValidation = innerRawApiResponse["NPI Validation"] || {};
+              // Extract contact info from backward-compatible rawApiResponse structure
+              // The processEligibilityData function creates this structure in backwardCompatibleRawApiResponse
+              const rawApiResponse =
+                searchResult.rawValidation.rawApiResponse || {};
+              const npiValidation = rawApiResponse["NPI Validation"] || {};
 
               return (
                 <>
@@ -394,10 +400,10 @@ export function NPISearch({ loading = false }: NPISearchProps) {
                       Mailing Address:
                     </Typography>
                     <Typography variant="body2">
-                      {npiValidation.mailingAddress || "N/A"}
+                      {npiValidation.mailingAddress || "Not Available"}
                     </Typography>
                     <Typography variant="body2">
-                      Phone: {npiValidation.mailingPhone || "N/A"}
+                      Phone: {npiValidation.mailingPhone || "Not Available"}
                     </Typography>
                   </Box>
 
@@ -409,10 +415,10 @@ export function NPISearch({ loading = false }: NPISearchProps) {
                       Practice Address:
                     </Typography>
                     <Typography variant="body2">
-                      {npiValidation.practiceAddress || "N/A"}
+                      {npiValidation.practiceAddress || "Not Available"}
                     </Typography>
                     <Typography variant="body2">
-                      Phone: {npiValidation.practicePhone || "N/A"}
+                      Phone: {npiValidation.practicePhone || "Not Available"}
                     </Typography>
                   </Box>
                 </>
@@ -426,15 +432,12 @@ export function NPISearch({ loading = false }: NPISearchProps) {
               Verification Status
             </Typography>
             {(() => {
-              // Handle nested rawApiResponse structure
-              const innerRawApiResponse =
-                searchResult.rawValidation.rawApiResponse?.rawApiResponse ||
-                searchResult.rawValidation.rawApiResponse ||
-                {};
-              const exclusions = innerRawApiResponse.Exclusions || [];
-              const preclusions =
-                innerRawApiResponse["CMS Preclusion List"] || [];
-              const optOut = innerRawApiResponse["Opt Out"] || {};
+              // Extract verification status from rawApiResponse
+              const rawApiResponse =
+                searchResult.rawValidation.rawApiResponse || {};
+              const exclusions = rawApiResponse.Exclusions || [];
+              const preclusions = rawApiResponse["CMS Preclusion List"] || [];
+              const optOut = rawApiResponse["Opt Out"] || {};
 
               return (
                 <>
@@ -469,7 +472,8 @@ export function NPISearch({ loading = false }: NPISearchProps) {
               Last Updated:
             </Typography>
             <Typography variant="body2">
-              {searchResult.rawValidation.npiDetails?.updateDate || "N/A"}
+              {searchResult.rawValidation.npiDetails?.updateDate ||
+                "Not Available"}
             </Typography>
           </Box>
         </Alert>
