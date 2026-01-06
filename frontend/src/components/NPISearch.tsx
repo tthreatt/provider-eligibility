@@ -181,14 +181,29 @@ export function NPISearch({ loading = false }: NPISearchProps) {
       // First fetch provider data
       const rawProviderData = await fetchProviderData(npi, token);
 
+      if (!rawProviderData) {
+        throw new Error("No data received from API");
+      }
+
+      console.log("Raw provider data:", rawProviderData);
+      console.log("Raw provider data keys:", Object.keys(rawProviderData));
+      console.log("Raw provider data rawApiResponse:", rawProviderData?.rawApiResponse);
+      console.log("Raw provider data rawApiResponse keys:", rawProviderData?.rawApiResponse ? Object.keys(rawProviderData.rawApiResponse) : "null");
+
       // Then fetch eligibility rules
       const eligibilityRules = await fetchEligibilityRules(token);
 
-      console.log("Raw provider data:", rawProviderData);
       console.log("Eligibility rules:", eligibilityRules);
 
       // Use processEligibilityData to properly structure the data
       const processedResult = processEligibilityData(rawProviderData);
+      console.log("Processed result:", processedResult);
+      console.log("Processed result requirements:", processedResult?.requirements);
+      console.log("Processed result isEligible:", processedResult?.isEligible);
+
+      if (!processedResult) {
+        throw new Error("Failed to process eligibility data");
+      }
 
       setSearchResult(processedResult);
     } catch (err) {
