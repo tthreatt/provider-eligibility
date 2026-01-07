@@ -81,12 +81,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Debug - Show Prettier version
+        run: npx prettier --version
+
       - name: Run ESLint
         run: npm run lint || true
         continue-on-error: true
 
       - name: Check Prettier formatting
-        run: npm run format:check
+        run: |
+          echo "Checking code formatting with Prettier..."
+          echo "Prettier version: $(npx prettier --version)"
+          npm run format:check || {
+            echo "::error::Prettier formatting check failed"
+            echo "Files with formatting issues will be listed above."
+            echo "To fix locally, run: cd frontend && npm run format"
+            exit 1
+          }
 
       - name: Run TypeScript type check
         run: npm run type-check
