@@ -71,6 +71,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug - Show tsconfig.json after checkout
+        run: |
+          echo "=== tsconfig.json contents after checkout (before npm ci) ==="
+          head -10 tsconfig.json || echo "File not found"
+          echo "=== Checking for multi-line arrays ==="
+          grep -A 3 '"lib":' tsconfig.json || true
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -80,6 +87,24 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Debug - Show tsconfig.json after npm ci
+        run: |
+          echo "=== tsconfig.json contents after npm ci ==="
+          head -10 tsconfig.json || echo "File not found"
+          echo "=== Checking for multi-line arrays ==="
+          grep -A 3 '"lib":' tsconfig.json || true
+
+      - name: Fix tsconfig.json formatting after npm ci
+        run: |
+          echo "Reformatting tsconfig.json to match Prettier expectations..."
+          if npx prettier --write tsconfig.json; then
+            echo "✓ tsconfig.json reformatted successfully"
+            echo "=== tsconfig.json after reformatting ==="
+            head -10 tsconfig.json
+          else
+            echo "⚠ Prettier not available, skipping reformat"
+          fi
 
       - name: Debug - Show Prettier version
         run: npx prettier --version
