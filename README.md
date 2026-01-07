@@ -1,13 +1,15 @@
 # Provider Eligibility
 
-A modern web application for managing provider eligibility verification, built with Next.js and FastAPI.
+A modern web application for managing healthcare provider eligibility verification, built with Next.js and FastAPI. The Eligibility Engine evaluates provider status based on federal and state monitoring and credential statuses.
 
 ## 🚀 Features
 
-- Full-stack application with separate frontend and backend services
-- Modern, responsive UI built with Next.js 14
+- **Full-stack application** with separate frontend and backend services
+- **NPI Lookup** - Search and verify healthcare providers by National Provider Identifier
+- **Eligibility Rules Management** - Configure and manage eligibility criteria
+- **Real-time Verification** - Automated status determination through predefined rules
+- Modern, responsive UI built with Next.js 15
 - RESTful API powered by FastAPI
-- Authentication and authorization using Clerk
 - Database management with SQLAlchemy and Alembic
 - Modern UI components using Radix UI and Material-UI
 - Type-safe development with TypeScript
@@ -16,25 +18,29 @@ A modern web application for managing provider eligibility verification, built w
 ## 🛠️ Tech Stack
 
 ### Frontend
-- Next.js 14
-- React 18
+- Next.js 15
+- React 19
 - TypeScript
 - Tailwind CSS
 - Material-UI
-- Radix UI Components
+- Radix UI Components (shadcn/ui)
+- Lucide React Icons
 - React Hook Form
 - Zod for validation
+- Recharts for data visualization
+- Sonner for toast notifications
 - Clerk for authentication
 
 ### Backend
 - FastAPI
 - SQLAlchemy
 - Alembic for database migrations
-- Python 3.x
-- PostgreSQL/SQLite
+- Python 3.9+
+- PostgreSQL (Neon)
 - Pydantic for data validation
 - JWT authentication
 - pytest for testing
+- Ruff for linting and formatting
 
 ## 📦 Installation
 
@@ -75,6 +81,8 @@ cp .env.example .env
 ```bash
 alembic upgrade head
 ```
+
+> **Note:** This project uses [Neon PostgreSQL](https://neon.tech/) as the database provider. The `DATABASE_URL` should be a PostgreSQL connection string.
 
 ### Frontend Setup
 1. Navigate to the frontend directory:
@@ -118,6 +126,8 @@ uvicorn app.main:app --reload
 ```
 The API will be available at `http://localhost:8000`
 
+API documentation (Swagger UI) is available at `http://localhost:8000/docs`
+
 ### Frontend
 ```bash
 cd frontend
@@ -131,18 +141,50 @@ The application will be available at `http://localhost:3000`
 
 ```
 provider-eligibility/
-├── frontend/
+├── frontend/               # Next.js frontend application
 │   ├── src/
-│   ├── public/
-│   ├── styles/
-│   └── package.json
-├── backend/
+│   │   ├── app/           # Next.js App Router pages
+│   │   ├── components/    # React components (including shadcn/ui)
+│   │   ├── services/      # API service functions
+│   │   ├── types/         # TypeScript type definitions
+│   │   └── utils/         # Utility functions
+│   ├── hooks/             # Custom React hooks
+│   ├── public/            # Static assets
+│   └── styles/            # Global styles
+├── backend/               # FastAPI backend application
 │   ├── app/
-│   ├── alembic/
-│   ├── tests/
-│   └── requirements.txt
-└── docs/
+│   │   ├── api/          # API endpoints
+│   │   ├── core/         # Core configuration
+│   │   ├── db/           # Database utilities
+│   │   ├── models/       # SQLAlchemy models
+│   │   ├── routes/       # Route handlers
+│   │   ├── schemas/      # Pydantic schemas
+│   │   └── services/     # Business logic services
+│   ├── alembic/          # Database migrations
+│   └── tests/            # Backend tests
+├── scripts/              # Utility scripts
+│   ├── db_backup.py      # Database backup utility
+│   └── db_health_check.py # Database health monitoring
+└── docs/                 # Project documentation
 ```
+
+## 📚 Documentation
+
+Additional documentation is available in the `/docs` directory:
+
+| Document | Description |
+|----------|-------------|
+| [api-doc.md](docs/api-doc.md) | API endpoint documentation |
+| [prd.md](docs/prd.md) | Product Requirements Document |
+| [technical-doc.md](docs/technical-doc.md) | Technical specifications |
+| [admin-ui.md](docs/admin-ui.md) | Admin UI documentation |
+| [eligibility-ui.md](docs/eligibility-ui.md) | Eligibility UI documentation |
+| [cred-req-doc.md](docs/cred-req-doc.md) | Credential requirements documentation |
+
+### Clerk Authentication Guides
+- [CLERK_AUTHENTICATION_STEPS.md](docs/CLERK_AUTHENTICATION_STEPS.md) - Setup instructions
+- [CLERK_TROUBLESHOOTING.md](docs/CLERK_TROUBLESHOOTING.md) - Common issues and solutions
+- [CLERK_DEV_BROWSER_FIX.md](docs/CLERK_DEV_BROWSER_FIX.md) - Development browser fixes
 
 ## 🧪 Testing
 
@@ -169,6 +211,26 @@ Run tests with coverage:
 ```bash
 npm run test:coverage
 ```
+
+## 🔧 Utility Scripts
+
+The project includes utility scripts for database management:
+
+### Database Backup
+```bash
+cd scripts
+python db_backup.py
+```
+Creates a JSON backup of the PostgreSQL database. Automatically maintains the last 5 backups in the `backups/` directory.
+
+### Database Health Check
+```bash
+cd scripts
+python db_health_check.py
+```
+Checks database connectivity, displays PostgreSQL version, database size, table statistics, and active connections.
+
+> **Note:** Both scripts require the `DATABASE_URL` environment variable to be set.
 
 ## 🔍 Code Quality
 
@@ -249,7 +311,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 👥 Authors
 
-- Your Name/Team
+- ProviderTrust Engineering Team
 
 ## 🙏 Acknowledgments
 
