@@ -92,6 +92,11 @@ jobs:
         run: |
           echo "Checking code formatting with Prettier..."
           echo "Prettier version: $(npx prettier --version)"
+          echo "Debug: Checking tsconfig.json specifically..."
+          npx prettier --check tsconfig.json || {
+            echo "tsconfig.json formatting issue detected. Showing what Prettier would change:"
+            npx prettier tsconfig.json | diff tsconfig.json - || true
+          }
           npm run format:check || {
             echo "::error::Prettier formatting check failed"
             echo "Files with formatting issues will be listed above."
