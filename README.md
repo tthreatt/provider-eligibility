@@ -62,8 +62,14 @@ pip install -r requirements.txt
 ```
 
 4. Set up environment variables:
-- Copy `.env.example` to `.env` (if available)
-- Configure your database and other environment variables
+```bash
+cp .env.example .env
+```
+- Edit `.env` and configure:
+  - `DATABASE_URL`: Your PostgreSQL connection string
+  - `API_KEY`: API key for authenticating requests (should match frontend)
+  - `BASE_URL`: Base URL for the API (optional, defaults to http://localhost:8000)
+  - `ENDPOINT_URL`: Endpoint URL for external API calls (optional)
 
 5. Run database migrations:
 ```bash
@@ -83,9 +89,25 @@ npm install
 yarn install
 ```
 
+**If you encounter Clerk/Next.js compatibility errors:**
+```bash
+# Clean install to fix version mismatches
+rm -rf node_modules package-lock.json .next
+npm install
+```
+
 3. Set up environment variables:
-- Copy `.env.local.example` to `.env.local` (if available)
-- Configure your environment variables
+```bash
+cp .env.example .env.local
+```
+- Edit `.env.local` and configure:
+  - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Get from [Clerk Dashboard](https://dashboard.clerk.com) (starts with `pk_test_...`)
+  - `CLERK_SECRET_KEY`: Get from Clerk Dashboard (starts with `sk_test_...`)
+  - `NEXT_PUBLIC_CLERK_SIGN_IN_URL`: Your Clerk sign-in URL (format: `https://your-app-name.clerk.accounts.dev/sign-in`)
+  - `BACKEND_URL`: URL of your FastAPI backend (usually `http://localhost:8000` for local dev)
+  - `API_KEY`: API key for backend authentication (should match backend `API_KEY`)
+  
+**Important**: Without these environment variables, the application will fail to start with Clerk-related errors.
 
 ## 🚀 Running the Application
 
