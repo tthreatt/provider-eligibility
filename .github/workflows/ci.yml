@@ -97,13 +97,23 @@ jobs:
 
       - name: Fix tsconfig.json formatting after npm ci
         run: |
-          echo "Reformatting tsconfig.json to match Prettier expectations..."
-          if npx prettier --write tsconfig.json; then
-            echo "✓ tsconfig.json reformatted successfully"
-            echo "=== tsconfig.json after reformatting ==="
-            head -10 tsconfig.json
+          echo "=== BEFORE: tsconfig.json formatting ==="
+          echo "Checking current state..."
+          head -10 tsconfig.json || echo "File not found"
+          echo ""
+          echo "=== Running Prettier to fix formatting ==="
+          npx prettier --write tsconfig.json
+          echo ""
+          echo "=== AFTER: tsconfig.json formatting ==="
+          head -10 tsconfig.json
+          echo ""
+          echo "=== Verifying formatting is correct ==="
+          if npx prettier --check tsconfig.json; then
+            echo "✓ tsconfig.json is correctly formatted"
           else
-            echo "⚠ Prettier not available, skipping reformat"
+            echo "⚠ Warning: tsconfig.json still has formatting issues after fix"
+            echo "Showing what Prettier expects:"
+            npx prettier tsconfig.json | head -10 || true
           fi
 
       - name: Debug - Show Prettier version
